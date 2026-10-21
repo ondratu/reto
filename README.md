@@ -12,7 +12,7 @@ a goal right now, but it is not ruled out for the future.
 
 Planned, roughly in this order:
 
-- [ ] Open a CSV file (file chooser, drag and drop, command line argument)
+- [x] Open a CSV file (file chooser, drag and drop, command line argument)
 - [ ] Parse the header row and use it for column titles
 - [ ] Sort the data by a column
 - [ ] Search in the data

@@ -18,7 +18,15 @@ reto_deps = [
   dependency('libadwaita-1', version: '>= 1.5'),
 ]
 
+# Data handling without any GTK dependency, shared with the unit tests.
+core_sources = files(
+  'csv-parser.vala',
+  'row-model.vala',
+  'row.vala',
+)
+
 reto_sources = [
+  core_sources,
   'main.vala',
   'application.vala',
   'window.vala',

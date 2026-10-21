@@ -28,22 +28,60 @@
           </object>
         </child>
         <property name="content">
-          <object class="AdwStatusPage">
-            <property name="icon-name">x-office-spreadsheet-symbolic</property>
-            <property name="title" translatable="yes">Open a CSV File</property>
-            <property name="description" translatable="yes">Choose a file to view its data.</property>
-            <property name="child">
-              <object class="GtkButton">
-                <property name="label" translatable="yes">_Open…</property>
-                <property name="use-underline">true</property>
-                <property name="halign">center</property>
-                <property name="action-name">win.open</property>
-                <style>
-                  <class name="suggested-action"/>
-                  <class name="pill"/>
-                </style>
+          <object class="GtkStack" id="stack">
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">empty</property>
+                <property name="child">
+                  <object class="AdwStatusPage">
+                    <property name="icon-name">x-office-spreadsheet-symbolic</property>
+                    <property name="title" translatable="yes">Open a CSV File</property>
+                    <property name="description" translatable="yes">Choose a file to view its data.</property>
+                    <property name="child">
+                      <object class="GtkButton">
+                        <property name="label" translatable="yes">_Open…</property>
+                        <property name="use-underline">true</property>
+                        <property name="halign">center</property>
+                        <property name="action-name">win.open</property>
+                        <style>
+                          <class name="suggested-action"/>
+                          <class name="pill"/>
+                        </style>
+                      </object>
+                    </property>
+                  </object>
+                </property>
               </object>
-            </property>
+            </child>
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">loading</property>
+                <property name="child">
+                  <object class="GtkSpinner">
+                    <property name="spinning">true</property>
+                    <property name="halign">center</property>
+                    <property name="valign">center</property>
+                    <property name="width-request">32</property>
+                    <property name="height-request">32</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">table</property>
+                <property name="child">
+                  <object class="GtkScrolledWindow">
+                    <property name="child">
+                      <object class="GtkColumnView" id="table">
+                        <property name="show-column-separators">true</property>
+                        <property name="show-row-separators">true</property>
+                      </object>
+                    </property>
+                  </object>
+                </property>
+              </object>
+            </child>
           </object>
         </property>
       </object>

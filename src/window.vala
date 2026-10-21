@@ -82,7 +82,7 @@ public class Reto.Window : Adw.ApplicationWindow {
 
         for (int i = 0; i < int.min (model.n_columns, MAX_COLUMNS); i++) {
             table.append_column (new Gtk.ColumnViewColumn (
-                (i + 1).to_string (), create_factory (i)
+                model.get_column_title (i), create_factory (i)
             ));
         }
         table.model = new Gtk.NoSelection (model);

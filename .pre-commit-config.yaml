@@ -1,0 +1,44 @@
+---
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-xml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: https://github.com/editorconfig-checker/editorconfig-checker.python
+    rev: 3.11.1
+    hooks:
+      - id: editorconfig-checker
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+
+  - repo: https://github.com/codespell-project/codespell
+    # Configuration for codespell is in .codespellrc
+    rev: v2.4.3
+    hooks:
+      - id: codespell
+
+  # The tools below are not available through pre-commit, install them
+  # from your distribution (see CONTRIBUTING.md). The desktop file is
+  # validated by `meson test`.
+  - repo: local
+    hooks:
+      - id: vala-lint
+        name: vala-lint
+        entry: io.elementary.vala-lint -c vala-lint.conf
+        language: system
+        files: \.vala$
+      - id: appstreamcli
+        name: appstreamcli validate
+        entry: appstreamcli validate --no-net --pedantic
+        language: system
+        files: \.metainfo\.xml(\.in)?$

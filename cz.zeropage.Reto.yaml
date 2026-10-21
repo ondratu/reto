@@ -1,0 +1,17 @@
+---
+id: cz.zeropage.Reto
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk
+command: reto
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+modules:
+  - name: reto
+    buildsystem: meson
+    sources:
+      - type: dir
+        path: .

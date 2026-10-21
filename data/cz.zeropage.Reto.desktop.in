@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Reto
+Comment=View CSV files
+Exec=reto %U
+Icon=cz.zeropage.Reto
+Terminal=false
+StartupNotify=true
+MimeType=text/csv;
+Categories=Office;Viewer;GTK;GNOME;
+Keywords=CSV;Table;Spreadsheet;Data;

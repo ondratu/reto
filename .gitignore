@@ -1,0 +1,12 @@
+/build/
+/builddir/
+/_build/
+/.flatpak-builder/
+/.flatpak/
+/repo/
+*.flatpak
+*.swp
+*~
+.vscode/
+.idea/
+.cache/

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>cz.zeropage.Reto</id>
+  <name>Reto</name>
+  <summary>View CSV files</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="cz.zeropage">
+    <name>Ondřej Tůma</name>
+  </developer>
+  <description>
+    <p>Reto is a simple viewer for CSV files. It shows the data in a table with the header row as column titles and lets you sort it by any column.</p>
+  </description>
+  <launchable type="desktop-id">cz.zeropage.Reto.desktop</launchable>
+  <provides>
+    <mediatype>text/csv</mediatype>
+  </provides>
+  <url type="homepage">https://github.com/ondratu/reto</url>
+  <url type="bugtracker">https://github.com/ondratu/reto/issues</url>
+  <content_rating type="oars-1.1"/>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </supports>
+  <releases>
+    <release version="0.1.0" date="2026-10-21"/>
+  </releases>
+</component>

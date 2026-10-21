@@ -67,38 +67,40 @@ string[] column_values (Reto.RowModel model, int column) {
     return values;
 }
 
-void assert_column (Reto.RowModel model, string expected) {
+void assert_column (
+    Reto.RowModel model, string expected, int column = 0
+) {
     assert_cmpstr (
-        string.joinv (",", column_values (model, 0)),
+        string.joinv (",", column_values (model, column)),
         CompareOperator.EQ, expected
     );
 }
 
 void test_sort_text () {
     var model = make_model ("h\nb\nc\na\n");
-    model.set_sorted (model.sort_by (0, false));
+    model.set_order (0, false);
     assert_column (model, "a,b,c");
-    model.set_sorted (model.sort_by (0, true));
+    model.set_order (0, true);
     assert_column (model, "c,b,a");
 }
 
 void test_sort_numeric () {
     var model = make_model ("h\n10\n9\n\"\"\n-2.5\n");
-    model.set_sorted (model.sort_by (0, false));
+    model.set_order (0, false);
     assert_column (model, ",-2.5,9,10");
-    model.set_sorted (model.sort_by (0, true));
+    model.set_order (0, true);
     assert_column (model, "10,9,-2.5,");
 }
 
 void test_sort_nan_and_inf_as_text () {
     var model = make_model ("h\nnan\n10\ninf\n9\n");
-    model.set_sorted (model.sort_by (0, false));
+    model.set_order (0, false);
     assert_column (model, "10,9,inf,nan");
 }
 
 void test_sort_is_stable () {
     var model = make_model ("k,v\n1,a\n0,b\n1,c\n0,d\n");
-    model.set_sorted (model.sort_by (0, false));
+    model.set_order (0, false);
     assert_cmpstr (
         string.joinv (",", column_values (model, 1)),
         CompareOperator.EQ, "b,d,a,c"
@@ -107,14 +109,14 @@ void test_sort_is_stable () {
 
 void test_sort_short_rows () {
     var model = make_model ("a,b\n1\n2,x\n");
-    model.set_sorted (model.sort_by (1, true));
+    model.set_order (1, true);
     assert_column (model, "2,1");
 }
 
 void test_clear_sort () {
     var model = make_model ("h\nb\na\n");
-    model.set_sorted (model.sort_by (0, false));
-    model.set_sorted (null);
+    model.set_order (0, false);
+    model.set_order (-1, false);
     assert_column (model, "b,a");
 }
 
@@ -126,8 +128,80 @@ void test_set_sorted_signal () {
         removed = r;
         added = a;
     });
-    model.set_sorted (model.sort_by (0, false));
+    model.set_order (0, false);
     assert_cmpuint (removed, CompareOperator.EQ, 2);
+    assert_cmpuint (added, CompareOperator.EQ, 2);
+}
+
+void test_distinct_values () {
+    var model = make_model ("k\nb\na\nb\n\"\"\na\n");
+    var values = model.distinct_values (0, 10);
+    assert_nonnull (values);
+    assert_cmpuint (values.length, CompareOperator.EQ, 3);
+    assert_cmpstr (values[0], CompareOperator.EQ, "");
+    assert_cmpstr (values[1], CompareOperator.EQ, "a");
+    assert_cmpstr (values[2], CompareOperator.EQ, "b");
+}
+
+void test_distinct_values_over_limit () {
+    var model = make_model ("k\na\nb\nc\n");
+    assert_null (model.distinct_values (0, 2));
+    assert_nonnull (model.distinct_values (0, 3));
+}
+
+void test_filter () {
+    var model = make_model ("k,v\na,1\nb,2\na,3\n");
+    model.set_filter (0, "a");
+    assert_cmpuint (model.get_n_items (), CompareOperator.EQ, 2);
+    assert_column (model, "1,3", 1);
+    model.set_filter (0, null);
+    assert_cmpuint (model.get_n_items (), CompareOperator.EQ, 3);
+}
+
+void test_filters_combine () {
+    var model = make_model ("k,v\na,1\nb,1\na,2\n");
+    model.set_filter (0, "a");
+    model.set_filter (1, "1");
+    assert_cmpuint (model.get_n_items (), CompareOperator.EQ, 1);
+    model.set_filter (0, null);
+    assert_cmpuint (model.get_n_items (), CompareOperator.EQ, 2);
+}
+
+void test_filter_keeps_sort () {
+    var model = make_model ("k,v\na,3\nb,2\na,1\n");
+    model.set_filter (0, "a");
+    model.set_order (1, false);
+    assert_column (model, "1,3", 1);
+    model.set_order (-1, false);
+    assert_column (model, "3,1", 1);
+}
+
+void test_filter_reuses_sort () {
+    var model = make_model ("k,v\na,3\nb,2\na,1\n");
+    model.set_order (1, false);
+    var sorted = model.view.sorted;
+    model.set_filter (0, "a");
+    assert_true (model.view.sorted == sorted);
+    assert_column (model, "1,3", 1);
+}
+
+void test_filter_bad_column () {
+    var model = make_model ("k\na\nb\n");
+    model.set_filter (-1, "a");
+    model.set_filter (1, "a");
+    assert_cmpuint (model.get_n_items (), CompareOperator.EQ, 2);
+}
+
+void test_filter_signal () {
+    var model = make_model ("k\na\nb\nb\n");
+    uint removed = 0;
+    uint added = 0;
+    model.items_changed.connect ((position, r, a) => {
+        removed = r;
+        added = a;
+    });
+    model.set_filter (0, "b");
+    assert_cmpuint (removed, CompareOperator.EQ, 3);
     assert_cmpuint (added, CompareOperator.EQ, 2);
 }
 
@@ -151,5 +225,15 @@ void main (string[] args) {
     Test.add_func ("/row-model/sort-short-rows", test_sort_short_rows);
     Test.add_func ("/row-model/clear-sort", test_clear_sort);
     Test.add_func ("/row-model/sorted-signal", test_set_sorted_signal);
+    Test.add_func ("/row-model/distinct-values", test_distinct_values);
+    Test.add_func (
+        "/row-model/distinct-values-limit", test_distinct_values_over_limit
+    );
+    Test.add_func ("/row-model/filter", test_filter);
+    Test.add_func ("/row-model/filters-combine", test_filters_combine);
+    Test.add_func ("/row-model/filter-keeps-sort", test_filter_keeps_sort);
+    Test.add_func ("/row-model/filter-reuses-sort", test_filter_reuses_sort);
+    Test.add_func ("/row-model/filter-bad-column", test_filter_bad_column);
+    Test.add_func ("/row-model/filter-signal", test_filter_signal);
     Test.run ();
 }

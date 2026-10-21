@@ -6,9 +6,18 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     private const int MAX_COLUMNS = 500;
 
+    // A column with at most this many distinct values is treated as an enum
+    // and gets a filter menu. CSV has no way to declare one.
+    private const int MAX_ENUM_VALUES = 50;
+
     private Cancellable cancellable = new Cancellable ();
     private RowModel? model = null;
-    private uint sort_generation = 0;
+    private uint view_generation = 0;
+    // What the user asked for. The model catches up once the thread is done.
+    private int sort_column = -1;
+    private bool sort_descending = false;
+    private string?[] wanted_filters = {};
+    private string[] filter_actions = {};
 
     [GtkChild]
     private unowned Gtk.Stack stack;
@@ -81,9 +90,16 @@ public class Reto.Window : Adw.ApplicationWindow {
     }
 
     private void show_model (RowModel model) {
-        sort_generation++;
+        view_generation++;
         sort_spinner.visible = false;
         this.model = null;
+        sort_column = -1;
+        sort_descending = false;
+        wanted_filters = new string?[model.n_columns];
+        foreach (var name in filter_actions) {
+            remove_action (name);
+        }
+        filter_actions = {};
         while (table.columns.get_n_items () > 0) {
             var column = (Gtk.ColumnViewColumn) table.columns.get_item (0);
             table.remove_column (column);
@@ -101,38 +117,100 @@ public class Reto.Window : Adw.ApplicationWindow {
         this.model = model;
         table.model = new Gtk.NoSelection (model);
         stack.visible_child_name = "table";
+        add_filters.begin (model);
     }
 
-    private void on_sort_changed () {
-        var sorter = (Gtk.ColumnViewSorter) table.sorter;
-        var column = sorter.get_primary_sort_column ();
-        if (model == null) {
-            return;
-        }
-        if (column == null) {
-            sort_generation++;
-            sort_spinner.visible = false;
-            model.set_sorted (null);
-            return;
-        }
-        sort.begin (
-            model, int.parse (column.id),
-            sorter.get_primary_sort_order () == Gtk.SortType.DESCENDING
-        );
-    }
-
-    private async void sort (RowModel model, int column, bool descending) {
-        var generation = ++sort_generation;
-        sort_spinner.visible = true;
-        GenericArray<Record>? sorted = null;
-        SourceFunc callback = sort.callback;
-        new Thread<void> ("csv-sort", () => {
-            sorted = model.sort_by (column, descending);
+    private async void add_filters (RowModel model) {
+        int n = int.min (model.n_columns, MAX_COLUMNS);
+        var values = new GenericArray<GenericArray<string>?> ();
+        SourceFunc callback = add_filters.callback;
+        new Thread<void> ("csv-enums", () => {
+            for (int i = 0; i < n; i++) {
+                values.add (model.distinct_values (i, MAX_ENUM_VALUES));
+            }
             Idle.add ((owned) callback);
         });
         yield;
-        if (generation == sort_generation) {
-            model.set_sorted (sorted);
+        if (model != this.model) {
+            return;
+        }
+
+        for (int i = 0; i < n; i++) {
+            var column = (Gtk.ColumnViewColumn?) table.columns.get_item (i);
+            if (column != null && values[i] != null) {
+                column.header_menu = create_filter_menu (model, i, values[i]);
+            }
+        }
+    }
+
+    private MenuModel create_filter_menu (
+        RowModel model, int index, GenericArray<string> values
+    ) {
+        var name = "filter-%d".printf (index);
+        var action = new SimpleAction.stateful (
+            name, VariantType.STRING, new Variant.string ("")
+        );
+        action.activate.connect ((parameter) => {
+            action.set_state (parameter);
+            // "" is every value; otherwise "v" followed by the value.
+            string target = parameter.get_string ();
+            var filters = RowModel.copy_filters (
+                wanted_filters, model.n_columns
+            );
+            filters[index] = target == "" ? null : target.substring (1);
+            wanted_filters = filters;
+            refresh.begin (model);
+        });
+        add_action (action);
+        filter_actions += name;
+
+        var menu = new Menu ();
+        var action_name = "win." + name;
+        var all = new MenuItem (_("All values"), null);
+        all.set_action_and_target_value (action_name, new Variant.string (""));
+        menu.append_item (all);
+        foreach (var value in values) {
+            // Underscores would be taken as mnemonics.
+            var label = value == "" ? _("(empty)") : value.replace ("_", "__");
+            var item = new MenuItem (label, null);
+            item.set_action_and_target_value (
+                action_name, new Variant.string ("v" + value)
+            );
+            menu.append_item (item);
+        }
+        return menu;
+    }
+
+    private void on_sort_changed () {
+        if (model == null) {
+            return;
+        }
+        var sorter = (Gtk.ColumnViewSorter) table.sorter;
+        var column = sorter.get_primary_sort_column ();
+        sort_column = column != null ? int.parse (column.id) : -1;
+        sort_descending =
+            sorter.get_primary_sort_order () == Gtk.SortType.DESCENDING;
+        refresh.begin (model);
+    }
+
+    // Sorts and filters in a thread, then shows the result. A newer request
+    // makes the result of an older one obsolete.
+    private async void refresh (RowModel model) {
+        var generation = ++view_generation;
+        sort_spinner.visible = true;
+        var column = sort_column;
+        var descending = sort_descending;
+        var filters = wanted_filters;
+        var previous = model.view;
+        RowView? view = null;
+        SourceFunc callback = refresh.callback;
+        new Thread<void> ("csv-view", () => {
+            view = model.build_view (column, descending, filters, previous);
+            Idle.add ((owned) callback);
+        });
+        yield;
+        if (generation == view_generation) {
+            model.show_view (view);
             sort_spinner.visible = false;
         }
     }

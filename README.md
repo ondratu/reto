@@ -14,7 +14,8 @@ Planned, roughly in this order:
 
 - [x] Open a CSV file (file chooser, drag and drop, command line argument)
 - [x] Parse the header row and use it for column titles
-- [ ] Sort the data by a column
+- [x] Sort the data by a column
+- [ ] Filter by a enum-type column
 - [ ] Search in the data
 - [ ] Editing (maybe, later)
 

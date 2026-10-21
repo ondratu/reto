@@ -7,6 +7,8 @@ public class Reto.Window : Adw.ApplicationWindow {
     private const int MAX_COLUMNS = 500;
 
     private Cancellable cancellable = new Cancellable ();
+    private RowModel? model = null;
+    private uint sort_generation = 0;
 
     [GtkChild]
     private unowned Gtk.Stack stack;
@@ -31,6 +33,8 @@ public class Reto.Window : Adw.ApplicationWindow {
             return file != null;
         });
         ((Gtk.Widget) this).add_controller (drop_target);
+
+        table.sorter.changed.connect (on_sort_changed);
     }
 
     public void open_file (File file) {
@@ -75,6 +79,8 @@ public class Reto.Window : Adw.ApplicationWindow {
     }
 
     private void show_model (RowModel model) {
+        sort_generation++;
+        this.model = null;
         while (table.columns.get_n_items () > 0) {
             var column = (Gtk.ColumnViewColumn) table.columns.get_item (0);
             table.remove_column (column);
@@ -83,10 +89,46 @@ public class Reto.Window : Adw.ApplicationWindow {
         for (int i = 0; i < int.min (model.n_columns, MAX_COLUMNS); i++) {
             table.append_column (new Gtk.ColumnViewColumn (
                 model.get_column_title (i), create_factory (i)
-            ));
+            ) {
+                id = i.to_string (),
+                // The sort itself is done by the model, see on_sort_changed.
+                sorter = new Gtk.CustomSorter ((a, b) => 0),
+            });
         }
+        this.model = model;
         table.model = new Gtk.NoSelection (model);
         stack.visible_child_name = "table";
+    }
+
+    private void on_sort_changed () {
+        var sorter = (Gtk.ColumnViewSorter) table.sorter;
+        var column = sorter.get_primary_sort_column ();
+        if (model == null) {
+            return;
+        }
+        if (column == null) {
+            sort_generation++;
+            model.set_sorted (null);
+            return;
+        }
+        sort.begin (
+            model, int.parse (column.id),
+            sorter.get_primary_sort_order () == Gtk.SortType.DESCENDING
+        );
+    }
+
+    private async void sort (RowModel model, int column, bool descending) {
+        var generation = ++sort_generation;
+        GenericArray<Record>? sorted = null;
+        SourceFunc callback = sort.callback;
+        new Thread<void> ("csv-sort", () => {
+            sorted = model.sort_by (column, descending);
+            Idle.add ((owned) callback);
+        });
+        yield;
+        if (generation == sort_generation) {
+            model.set_sorted (sorted);
+        }
     }
 
     private Gtk.ListItemFactory create_factory (int index) {

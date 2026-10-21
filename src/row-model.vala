@@ -41,6 +41,14 @@ public class Reto.RowModel : Object, ListModel {
         get { return records.length > 0 ? records.length - 1 : 0; }
     }
 
+    /**
+     * The value a column is filtered by, or null if it is not filtered.
+     */
+    public string? get_filter (int column) {
+        var filters = view.filters;
+        return column >= 0 && column < filters.length ? filters[column] : null;
+    }
+
     public Type get_item_type () {
         return typeof (Row);
     }

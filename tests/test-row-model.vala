@@ -158,6 +158,16 @@ void test_filter () {
     assert_cmpuint (model.get_n_items (), CompareOperator.EQ, 3);
 }
 
+void test_filter_info () {
+    var model = make_model ("k\na\nb\n");
+    assert_null (model.get_filter (0));
+    model.set_filter (0, "a");
+    assert_cmpstr (model.get_filter (0), CompareOperator.EQ, "a");
+    assert_null (model.get_filter (5));
+    assert_cmpuint (model.n_rows, CompareOperator.EQ, 2);
+    assert_cmpuint (model.get_n_items (), CompareOperator.EQ, 1);
+}
+
 void test_filters_combine () {
     var model = make_model ("k,v\na,1\nb,1\na,2\n");
     model.set_filter (0, "a");
@@ -230,6 +240,7 @@ void main (string[] args) {
         "/row-model/distinct-values-limit", test_distinct_values_over_limit
     );
     Test.add_func ("/row-model/filter", test_filter);
+    Test.add_func ("/row-model/filter-info", test_filter_info);
     Test.add_func ("/row-model/filters-combine", test_filters_combine);
     Test.add_func ("/row-model/filter-keeps-sort", test_filter_keeps_sort);
     Test.add_func ("/row-model/filter-reuses-sort", test_filter_reuses_sort);

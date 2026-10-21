@@ -13,6 +13,7 @@ public class Reto.Window : Adw.ApplicationWindow {
     private Cancellable cancellable = new Cancellable ();
     private RowModel? model = null;
     private uint view_generation = 0;
+    private ulong status_handler = 0;
     // What the user asked for. The model catches up once the thread is done.
     private int sort_column = -1;
     private bool sort_descending = false;
@@ -25,6 +26,8 @@ public class Reto.Window : Adw.ApplicationWindow {
     private unowned Gtk.ColumnView table;
     [GtkChild]
     private unowned Gtk.Spinner sort_spinner;
+    [GtkChild]
+    private unowned Gtk.Label status_label;
 
     public Window (Gtk.Application app) {
         Object (application: app);
@@ -92,6 +95,9 @@ public class Reto.Window : Adw.ApplicationWindow {
     private void show_model (RowModel model) {
         view_generation++;
         sort_spinner.visible = false;
+        if (this.model != null) {
+            this.model.disconnect (status_handler);
+        }
         this.model = null;
         sort_column = -1;
         sort_descending = false;
@@ -115,9 +121,31 @@ public class Reto.Window : Adw.ApplicationWindow {
             });
         }
         this.model = model;
+        status_handler = model.items_changed.connect (update_status);
+        update_status ();
         table.model = new Gtk.NoSelection (model);
         stack.visible_child_name = "table";
         add_filters.begin (model);
+    }
+
+    private void update_status () {
+        if (model == null) {
+            return;
+        }
+        var text = new StringBuilder ();
+        text.append (_("%u of %u rows").printf (
+            model.get_n_items (), model.n_rows
+        ));
+        for (int i = 0; i < int.min (model.n_columns, MAX_COLUMNS); i++) {
+            var value = model.get_filter (i);
+            if (value != null) {
+                text.append_printf (
+                    "  ·  %s: %s", model.get_column_title (i),
+                    value == "" ? _("(empty)") : value
+                );
+            }
+        }
+        status_label.label = text.str;
     }
 
     private async void add_filters (RowModel model) {

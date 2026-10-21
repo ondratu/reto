@@ -14,6 +14,8 @@ public class Reto.Window : Adw.ApplicationWindow {
     private unowned Gtk.Stack stack;
     [GtkChild]
     private unowned Gtk.ColumnView table;
+    [GtkChild]
+    private unowned Gtk.Spinner sort_spinner;
 
     public Window (Gtk.Application app) {
         Object (application: app);
@@ -80,6 +82,7 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     private void show_model (RowModel model) {
         sort_generation++;
+        sort_spinner.visible = false;
         this.model = null;
         while (table.columns.get_n_items () > 0) {
             var column = (Gtk.ColumnViewColumn) table.columns.get_item (0);
@@ -108,6 +111,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         }
         if (column == null) {
             sort_generation++;
+            sort_spinner.visible = false;
             model.set_sorted (null);
             return;
         }
@@ -119,6 +123,7 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     private async void sort (RowModel model, int column, bool descending) {
         var generation = ++sort_generation;
+        sort_spinner.visible = true;
         GenericArray<Record>? sorted = null;
         SourceFunc callback = sort.callback;
         new Thread<void> ("csv-sort", () => {
@@ -128,6 +133,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         yield;
         if (generation == sort_generation) {
             model.set_sorted (sorted);
+            sort_spinner.visible = false;
         }
     }
 

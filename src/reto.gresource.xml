@@ -2,5 +2,6 @@
 <gresources>
   <gresource prefix="/cz/zeropage/Reto">
     <file>window.ui</file>
+    <file>style.css</file>
   </gresource>
 </gresources>

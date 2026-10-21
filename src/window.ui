@@ -74,6 +74,7 @@
                   <object class="GtkScrolledWindow">
                     <property name="child">
                       <object class="GtkColumnView" id="table">
+                        <style><class name="data-table"/></style>
                         <property name="show-column-separators">true</property>
                         <property name="show-row-separators">true</property>
                       </object>

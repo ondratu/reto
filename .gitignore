@@ -1,4 +1,5 @@
 /build/
+/build-coverage/
 /builddir/
 /_build/
 /.flatpak-builder/

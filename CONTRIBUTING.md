@@ -58,6 +58,27 @@ last two are not installable through pre-commit; install them from your
 distribution. CI runs the remaining hooks and a Meson build with
 `meson test`, which also validates the desktop file.
 
+## Tests
+
+```sh
+meson test -C build
+```
+
+The CSV parsing and the data model (`csv-parser.vala`, `row-model.vala`,
+`row.vala`) have unit tests in `tests/`; new code in them needs tests too.
+Use `meson test -C build -v` to list every test case.
+
+To see line coverage of the sources (needs only `gcov`), configure a build
+with coverage and run the `coverage-summary` target:
+
+```sh
+meson setup build-coverage -Db_coverage=true
+ninja -C build-coverage coverage-summary
+```
+
+`tools/coverage.py` does the same in one step. The UI code is not covered by
+unit tests.
+
 ## Platforms
 
 Linux is the primary target. Avoid Linux-only APIs where a portable

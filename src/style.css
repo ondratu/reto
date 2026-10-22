@@ -1,3 +1,12 @@
 columnview.data-table > header {
     background-color: alpha(@window_fg_color, 0.08);
 }
+
+columnview.data-table box.match {
+    background-color: alpha(@warning_bg_color, 0.35);
+}
+
+columnview.data-table box.current-match {
+    background-color: @warning_bg_color;
+    color: @warning_fg_color;
+}

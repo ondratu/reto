@@ -14,7 +14,7 @@ resources = gnome.compile_resources('reto-resources',
 reto_deps = [
   dependency('glib-2.0', version: '>= 2.76'),
   dependency('gio-2.0'),
-  dependency('gtk4', version: '>= 4.10'),
+  dependency('gtk4', version: '>= 4.12'),
   dependency('libadwaita-1', version: '>= 1.5'),
 ]
 
@@ -30,6 +30,7 @@ reto_sources = [
   core_sources,
   'main.vala',
   'application.vala',
+  'cell.vala',
   'window.vala',
   'config.vapi',
   resources,

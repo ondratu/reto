@@ -3,6 +3,9 @@ public class Reto.Window : Adw.ApplicationWindow {
     private const ActionEntry[] ACTION_ENTRIES = {
         { "open", on_open },
         { "reset", on_reset },
+        { "find", on_find },
+        { "find-next", on_find_next },
+        { "find-previous", on_find_previous },
     };
 
     private const int MAX_COLUMNS = 500;
@@ -20,6 +23,18 @@ public class Reto.Window : Adw.ApplicationWindow {
     private bool sort_descending = false;
     private string?[] wanted_filters = {};
     private string[] filter_actions = {};
+    private uint search_generation = 0;
+    private SearchResult? search = null;
+    // What ''search'' was made for: the query and the rows it was looking at.
+    private string search_query = "";
+    private RowView? search_view = null;
+    // The record the search was on before the rows moved, to stay on it.
+    private Record? search_anchor = null;
+    // Index of the match the search is on, or -1.
+    private int search_current = -1;
+    private int search_row = -1;
+    private int search_column = -1;
+    private GenericArray<Cell> cells = new GenericArray<Cell> ();
 
     [GtkChild]
     private unowned Gtk.Stack stack;
@@ -29,6 +44,14 @@ public class Reto.Window : Adw.ApplicationWindow {
     private unowned Gtk.Spinner sort_spinner;
     [GtkChild]
     private unowned Gtk.Label status_label;
+    [GtkChild]
+    private unowned Gtk.SearchBar search_bar;
+    [GtkChild]
+    private unowned Gtk.SearchEntry search_entry;
+    [GtkChild]
+    private unowned Gtk.Label search_count;
+    [GtkChild]
+    private unowned Gtk.ToggleButton search_button;
 
     public Window (Gtk.Application app) {
         Object (application: app);
@@ -51,6 +74,32 @@ public class Reto.Window : Adw.ApplicationWindow {
 
         table.sorter.changed.connect (on_sort_changed);
         update_reset ();
+
+        search_bar.connect_entry (search_entry);
+        search_entry.search_changed.connect (() => run_search.begin (true));
+        search_entry.activate.connect (on_find_next);
+        search_entry.next_match.connect (on_find_next);
+        search_entry.previous_match.connect (on_find_previous);
+        // Shift+Enter would be a plain Enter for the entry, so catch it first.
+        var keys = new Gtk.EventControllerKey () {
+            propagation_phase = Gtk.PropagationPhase.CAPTURE,
+        };
+        keys.key_pressed.connect ((keyval, keycode, state) => {
+            bool enter = keyval == Gdk.Key.Return || keyval == Gdk.Key.KP_Enter;
+            if (enter && (state & Gdk.ModifierType.SHIFT_MASK) != 0) {
+                on_find_previous ();
+                return true;
+            }
+            return false;
+        });
+        search_entry.add_controller (keys);
+        search_bar.notify["search-mode-enabled"].connect (() => {
+            if (!search_bar.search_mode_enabled) {
+                search_entry.text = "";
+                reset_search ();
+            }
+        });
+        show_search (false);
     }
 
     public void open_file (File file) {
@@ -105,6 +154,13 @@ public class Reto.Window : Adw.ApplicationWindow {
         sort_descending = false;
         wanted_filters = new string?[model.n_columns];
         update_reset ();
+        // Closing the search bar resets the search.
+        if (search_bar.search_mode_enabled) {
+            search_bar.search_mode_enabled = false;
+        } else {
+            reset_search ();
+        }
+        search_button.sensitive = true;
         foreach (var name in filter_actions) {
             remove_action (name);
         }
@@ -271,24 +327,172 @@ public class Reto.Window : Adw.ApplicationWindow {
         });
         yield;
         if (generation == view_generation) {
+            if (search_view == model.view) {
+                search_anchor = search_row >= 0
+                    ? model.get_record (search_row) : null;
+            }
             model.show_view (view);
             sort_spinner.visible = false;
+            if (search_entry.text != "") {
+                // The rows moved, so the matches did too.
+                run_search.begin (false);
+            }
+        }
+    }
+
+    private void on_find () {
+        if (model == null) {
+            return;
+        }
+        search_bar.search_mode_enabled = true;
+        search_entry.grab_focus ();
+    }
+
+    private void on_find_next () {
+        find_step (1);
+    }
+
+    private void on_find_previous () {
+        find_step (-1);
+    }
+
+    private void find_step (int delta) {
+        if (search_entry.text != search_query) {
+            // The search is still catching up with what was typed.
+            run_search.begin (true);
+            return;
+        }
+        if (search == null || search.count == 0) {
+            return;
+        }
+        search_current = search.step (search_current, delta);
+        show_search (true);
+    }
+
+    private void reset_search () {
+        search_generation++;
+        search = null;
+        search_query = "";
+        search_view = null;
+        search_anchor = null;
+        search_current = -1;
+        show_search (false);
+    }
+
+    // Looks for the text of the search entry in the rows shown now. The
+    // search is on the first match if ''jump'' is set, otherwise it stays on
+    // the record it was on, if that still matches.
+    private async void run_search (bool jump) {
+        var generation = ++search_generation;
+        var model = this.model;
+        var query = search_entry.text;
+        if (jump) {
+            search_anchor = null;
+        }
+        if (model == null || query == "") {
+            reset_search ();
+            return;
+        }
+
+        search_count.label = _("Searching…");
+        var view = model.view;
+        var anchor = search_anchor;
+        SearchResult? result = null;
+        SourceFunc callback = run_search.callback;
+        new Thread<void> ("csv-search", () => {
+            result = model.find_rows (query, view, MAX_COLUMNS, anchor);
+            Idle.add ((owned) callback);
+        });
+        yield;
+        if (generation != search_generation || model != this.model) {
+            return;
+        }
+        search = result;
+        search_query = query;
+        search_view = view;
+        search_anchor = null;
+        search_current = jump ? result.step (-1, 1) : result.anchor_index;
+        show_search (jump);
+    }
+
+    // Shows the state of the search: the count, the marked cells and the
+    // available actions. Scrolls to the match the search is on if ''scroll''.
+    private void show_search (bool scroll) {
+        uint count = search != null ? search.count : 0;
+        string query = search_entry.text;
+        if (query == "" || search == null) {
+            search_count.label = "";
+        } else if (count == 0) {
+            search_count.label = _("No results");
+        } else if (search_current < 0) {
+            search_count.label = ngettext (
+                "%u match", "%u matches", count
+            ).printf (count);
+        } else {
+            search_count.label = _("%d of %u").printf (
+                search_current + 1, count
+            );
+        }
+        if (query != "" && search != null && count == 0) {
+            search_entry.add_css_class ("error");
+        } else {
+            search_entry.remove_css_class ("error");
+        }
+        ((SimpleAction) lookup_action ("find-next")).set_enabled (count > 0);
+        ((SimpleAction) lookup_action ("find-previous")).set_enabled (
+            count > 0
+        );
+
+        search_row = -1;
+        search_column = -1;
+        if (search_current >= 0) {
+            search_row = (int) search.position_at (search_current);
+            var row = (Row?) model.get_item (search_row);
+            if (row != null) {
+                search_column = search.matcher.first_column (
+                    row.cells, MAX_COLUMNS
+                );
+            }
+        }
+        foreach (var cell in cells) {
+            cell.highlight (
+                search != null ? search.matcher : null,
+                search_row, search_column
+            );
+        }
+        if (scroll && search_column >= 0) {
+            var column = (Gtk.ColumnViewColumn?) table.columns.get_item (
+                search_column
+            );
+            table.scroll_to (
+                search_row, column, Gtk.ListScrollFlags.NONE, null
+            );
         }
     }
 
     private Gtk.ListItemFactory create_factory (int index) {
         var factory = new Gtk.SignalListItemFactory ();
         factory.setup.connect ((item) => {
-            ((Gtk.ListItem) item).child = new Gtk.Label (null) {
-                xalign = 0,
-                ellipsize = Pango.EllipsizeMode.END,
-            };
+            var cell = new Cell (index);
+            cells.add (cell);
+            ((Gtk.ListItem) item).child = cell;
+        });
+        factory.teardown.connect ((item) => {
+            cells.remove ((Cell) ((Gtk.ListItem) item).child);
         });
         factory.bind.connect ((item) => {
             var list_item = (Gtk.ListItem) item;
-            var cells = ((Row) list_item.item).cells;
-            var label = (Gtk.Label) list_item.child;
-            label.label = index < cells.length ? cells[index] : "";
+            var row_cells = ((Row) list_item.item).cells;
+            var cell = (Cell) list_item.child;
+            cell.row = (int) list_item.position;
+            cell.text = index < row_cells.length ? row_cells[index] : "";
+            cell.highlight (
+                search != null ? search.matcher : null,
+                search_row, search_column
+            );
+        });
+        factory.unbind.connect ((item) => {
+            ((Cell) ((Gtk.ListItem) item).child).row = -1;
         });
         return factory;
     }

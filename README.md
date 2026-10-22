@@ -3,8 +3,8 @@
 A simple, fast CSV file viewer for the GNOME desktop.
 
 Reto opens a CSV file, parses its header and shows the data in a table that
-you can sort by any column. Searching in the data is planned. Editing is not
-a goal right now, but it is not ruled out for the future.
+you can sort, filter and search. Editing is not a goal right now, but it is
+not ruled out for the future.
 
 > **Status:** early development. Nothing is usable yet.
 
@@ -16,7 +16,7 @@ Planned, roughly in this order:
 - [x] Parse the header row and use it for column titles
 - [x] Sort the data by a column
 - [x] Filter by an enum-like column (a column with few distinct values)
-- [ ] Search in the data
+- [x] Search in the data (jump between matches)
 - [ ] Editing (maybe, later)
 
 ## Technology
@@ -36,7 +36,7 @@ Planned, roughly in this order:
 
 ## Building
 
-Requirements: Meson, Ninja, `valac`, GTK 4 (>= 4.10) and libadwaita (>= 1.5)
+Requirements: Meson, Ninja, `valac`, GTK 4 (>= 4.12) and libadwaita (>= 1.5)
 development files.
 
 ```sh

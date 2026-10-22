@@ -76,6 +76,14 @@ void assert_column (
     );
 }
 
+void test_get_record () {
+    var model = make_model ("h\nb\na\n");
+    assert_cmpstr (model.get_record (0).cells[0], CompareOperator.EQ, "b");
+    model.set_order (0, false);
+    assert_cmpstr (model.get_record (0).cells[0], CompareOperator.EQ, "a");
+    assert_null (model.get_record (2));
+}
+
 void test_sort_text () {
     var model = make_model ("h\nb\nc\na\n");
     model.set_order (0, false);
@@ -228,6 +236,7 @@ void main (string[] args) {
     Test.add_func (
         "/row-model/list-model-interface", test_list_model_interface
     );
+    Test.add_func ("/row-model/get-record", test_get_record);
     Test.add_func ("/row-model/sort-text", test_sort_text);
     Test.add_func ("/row-model/sort-numeric", test_sort_numeric);
     Test.add_func ("/row-model/sort-nan-inf", test_sort_nan_and_inf_as_text);

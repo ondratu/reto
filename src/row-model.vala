@@ -54,25 +54,48 @@ public class Reto.RowModel : Object, ListModel {
     }
 
     public uint get_n_items () {
-        if (view.filtered != null) {
-            return view.filtered.length;
-        }
-        return n_rows;
+        return rows_in (view);
     }
 
     public Object? get_item (uint position) {
         if (position >= get_n_items ()) {
             return null;
         }
-        Record record;
-        if (view.filtered != null) {
-            record = view.filtered[position];
-        } else if (view.sorted != null) {
-            record = view.sorted[position];
-        } else {
-            record = records[position + 1];
+        return new Row (record_at (view, position).cells);
+    }
+
+    /**
+     * The record shown at a position, or null if there is none.
+     */
+    public Record? get_record (uint position) {
+        return position < get_n_items () ? record_at (view, position) : null;
+    }
+
+    /**
+     * Finds the rows of a view with a cell, in one of the first
+     * ''max_columns'' columns, that contains ''query'' in any letter case.
+     * If ''anchor'' is one of them, its place among the matches is
+     * ''anchor_index'' of the result. Does not touch the model, so it can run
+     * in a thread.
+     */
+    public SearchResult find_rows (
+        string query, RowView view, int max_columns, Record? anchor = null
+    ) {
+        var result = new SearchResult (new Matcher (query));
+        if (result.matcher.is_empty) {
+            return result;
         }
-        return new Row (record.cells);
+        uint n = rows_in (view);
+        for (uint i = 0; i < n; i++) {
+            var record = record_at (view, i);
+            if (result.matcher.first_column (record.cells, max_columns) >= 0) {
+                if (record == anchor) {
+                    result.anchor_index = (int) result.count;
+                }
+                result.add (i);
+            }
+        }
+        return result;
     }
 
     /**
@@ -146,6 +169,20 @@ public class Reto.RowModel : Object, ListModel {
             copy[i] = filters[i];
         }
         return copy;
+    }
+
+    private uint rows_in (RowView view) {
+        return view.filtered != null ? view.filtered.length : n_rows;
+    }
+
+    private Record record_at (RowView view, uint position) {
+        if (view.filtered != null) {
+            return view.filtered[position];
+        }
+        if (view.sorted != null) {
+            return view.sorted[position];
+        }
+        return records[position + 1];
     }
 
     private GenericArray<Record> sort_by (int column, bool descending) {

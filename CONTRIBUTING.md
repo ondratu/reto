@@ -65,7 +65,8 @@ meson test -C build
 ```
 
 The CSV parsing and the data model (`csv-parser.vala`, `row-model.vala`,
-`row.vala`) have unit tests in `tests/`; new code in them needs tests too.
+`row.vala`, `search.vala`) have unit tests in `tests/`; new code in them needs
+tests too.
 Use `meson test -C build -v` to list every test case.
 
 To see line coverage of the sources (needs only `gcov`), configure a build

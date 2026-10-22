@@ -23,6 +23,7 @@ core_sources = files(
   'csv-parser.vala',
   'row-model.vala',
   'row.vala',
+  'search.vala',
 )
 
 reto_sources = [

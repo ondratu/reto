@@ -4,7 +4,7 @@ test_deps = [
   dependency('gio-2.0'),
 ]
 
-foreach name : ['csv-parser', 'row-model']
+foreach name : ['csv-parser', 'row-model', 'search']
   test_exe = executable('test-' + name,
     ['test-@0@.vala'.format(name), core_sources],
     dependencies: test_deps,

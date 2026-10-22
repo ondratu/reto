@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect x="12" y="20" width="104" height="88" rx="10" fill="#ffffff" stroke="#3584e4" stroke-width="6"/>
-  <rect x="12" y="20" width="104" height="24" rx="10" fill="#3584e4"/>
-  <rect x="12" y="34" width="104" height="10" fill="#3584e4"/>
-  <path d="M46 44v64M82 44v64M12 68h104M12 88h104" stroke="#99c1f1" stroke-width="4" fill="none"/>
+  <rect width="128" height="128" rx="24" fill="#2b3a55"/>
+  <rect x="20" y="24" width="88" height="18" rx="4" fill="#5b7bb5"/>
+  <rect x="20" y="48" width="88" height="14" rx="3" fill="#ffffff" opacity="0.2"/>
+  <rect x="20" y="66" width="88" height="14" rx="3" fill="#f5b83d"/>
+  <rect x="20" y="84" width="88" height="14" rx="3" fill="#ffffff" opacity="0.2"/>
+  <path d="M49 24v74M79 24v74" stroke="#2b3a55" stroke-width="3" fill="none"/>
 </svg>

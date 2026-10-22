@@ -16,6 +16,7 @@ public class Reto.Application : Adw.Application {
         add_action_entries (ACTION_ENTRIES, this);
         set_accels_for_action ("app.quit", { "<Control>q" });
         set_accels_for_action ("win.open", { "<Control>o" });
+        set_accels_for_action ("win.reset", { "<Control><Shift>r" });
     }
 
     protected override void activate () {

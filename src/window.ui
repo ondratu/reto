@@ -17,6 +17,13 @@
                 <property name="action-name">win.open</property>
               </object>
             </child>
+            <child type="start">
+              <object class="GtkButton">
+                <property name="icon-name">edit-clear-all-symbolic</property>
+                <property name="action-name">win.reset</property>
+                <property name="tooltip-text" translatable="yes">Reset Sorting and Filters</property>
+              </object>
+            </child>
             <child type="end">
               <object class="GtkMenuButton">
                 <property name="icon-name">open-menu-symbolic</property>

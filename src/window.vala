@@ -2,6 +2,7 @@
 public class Reto.Window : Adw.ApplicationWindow {
     private const ActionEntry[] ACTION_ENTRIES = {
         { "open", on_open },
+        { "reset", on_reset },
     };
 
     private const int MAX_COLUMNS = 500;
@@ -49,6 +50,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         ((Gtk.Widget) this).add_controller (drop_target);
 
         table.sorter.changed.connect (on_sort_changed);
+        update_reset ();
     }
 
     public void open_file (File file) {
@@ -102,6 +104,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         sort_column = -1;
         sort_descending = false;
         wanted_filters = new string?[model.n_columns];
+        update_reset ();
         foreach (var name in filter_actions) {
             remove_action (name);
         }
@@ -187,6 +190,7 @@ public class Reto.Window : Adw.ApplicationWindow {
             );
             filters[index] = target == "" ? null : target.substring (1);
             wanted_filters = filters;
+            update_reset ();
             refresh.begin (model);
         });
         add_action (action);
@@ -218,7 +222,36 @@ public class Reto.Window : Adw.ApplicationWindow {
         sort_column = column != null ? int.parse (column.id) : -1;
         sort_descending =
             sorter.get_primary_sort_order () == Gtk.SortType.DESCENDING;
+        update_reset ();
         refresh.begin (model);
+    }
+
+    // Reset is only available while there is a sort order or a filter.
+    private void update_reset () {
+        bool active = sort_column >= 0;
+        foreach (var value in wanted_filters) {
+            active = active || value != null;
+        }
+        var reset = (SimpleAction) lookup_action ("reset");
+        reset.set_enabled (active);
+    }
+
+    private void on_reset () {
+        if (model == null) {
+            return;
+        }
+        wanted_filters = new string?[model.n_columns];
+        foreach (var name in filter_actions) {
+            var action = (SimpleAction) lookup_action (name);
+            action.set_state (new Variant.string (""));
+        }
+        if (sort_column >= 0) {
+            // Changes the sorter, so on_sort_changed refreshes the view.
+            table.sort_by_column (null, Gtk.SortType.ASCENDING);
+        } else {
+            update_reset ();
+            refresh.begin (model);
+        }
     }
 
     // Sorts and filters in a thread, then shows the result. A newer request

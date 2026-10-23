@@ -1,0 +1,30 @@
+# EditorConfig <https://EditorConfig.org>
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+tab_width = 4
+max_line_length = 80
+
+# Markup, data and build files
+[{*.ui,*.xml,*.in,*.yml,*.yaml,*.json,*.svg,meson.build,meson.options}]
+indent_size = 2
+tab_width = 2
+
+# Long lines are common in markup, translatable strings must not be wrapped
+[*.{ui,xml,in}]
+max_line_length = off
+
+[*.md]
+indent_size = 2
+tab_width = 2
+trim_trailing_whitespace = false
+
+# The license text is kept verbatim
+[LICENSE]
+max_line_length = off

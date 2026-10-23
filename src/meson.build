@@ -20,12 +20,19 @@ reto_deps = [
 core_sources = files(
   'csv-parser.vala',
   'row-model.vala',
+  'generation.vala',
   'row.vala',
   'search.vala',
+  'search-state.vala',
+  'view-state.vala',
 )
+
+# Plain data, kept apart because its unit test needs GTK.
+shortcut_sources = files('shortcuts.vala')
 
 reto_sources = [
   core_sources,
+  shortcut_sources,
   'main.vala',
   'application.vala',
   'cell.vala',

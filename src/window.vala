@@ -16,24 +16,14 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     private Cancellable cancellable = new Cancellable ();
     private RowModel? model = null;
-    private uint view_generation = 0;
+    private Generation view_generation = new Generation ();
     private ulong status_handler = 0;
     // What the user asked for. The model catches up once the thread is done.
     private int sort_column = -1;
     private bool sort_descending = false;
     private string?[] wanted_filters = {};
     private string[] filter_actions = {};
-    private uint search_generation = 0;
-    private SearchResult? search = null;
-    // What ''search'' was made for: the query and the rows it was looking at.
-    private string search_query = "";
-    private RowView? search_view = null;
-    // The record the search was on before the rows moved, to stay on it.
-    private Record? search_anchor = null;
-    // Index of the match the search is on, or -1.
-    private int search_current = -1;
-    private int search_row = -1;
-    private int search_column = -1;
+    private SearchState search = new SearchState ();
     private GenericArray<Cell> cells = new GenericArray<Cell> ();
 
     [GtkChild]
@@ -144,7 +134,7 @@ public class Reto.Window : Adw.ApplicationWindow {
     }
 
     private void show_model (RowModel model) {
-        view_generation++;
+        view_generation.invalidate ();
         sort_spinner.visible = false;
         if (this.model != null) {
             this.model.disconnect (status_handler);
@@ -170,7 +160,8 @@ public class Reto.Window : Adw.ApplicationWindow {
             table.remove_column (column);
         }
 
-        for (int i = 0; i < int.min (model.n_columns, MAX_COLUMNS); i++) {
+        int n = ViewState.shown_columns (model, MAX_COLUMNS);
+        for (int i = 0; i < n; i++) {
             table.append_column (new Gtk.ColumnViewColumn (
                 model.get_column_title (i), create_factory (i)
             ) {
@@ -193,24 +184,11 @@ public class Reto.Window : Adw.ApplicationWindow {
         if (model == null) {
             return;
         }
-        var text = new StringBuilder ();
-        text.append ("%u of %u rows".printf (
-            model.get_n_items (), model.n_rows
-        ));
-        for (int i = 0; i < int.min (model.n_columns, MAX_COLUMNS); i++) {
-            var value = model.get_filter (i);
-            if (value != null) {
-                text.append_printf (
-                    "  ·  %s: %s", model.get_column_title (i),
-                    value == "" ? "(empty)" : value
-                );
-            }
-        }
-        status_label.label = text.str;
+        status_label.label = ViewState.describe_status (model, MAX_COLUMNS);
     }
 
     private async void add_filters (RowModel model) {
-        int n = int.min (model.n_columns, MAX_COLUMNS);
+        int n = ViewState.shown_columns (model, MAX_COLUMNS);
         var values = new GenericArray<GenericArray<string>?> ();
         SourceFunc callback = add_filters.callback;
         new Thread<void> ("csv-enums", () => {
@@ -241,12 +219,10 @@ public class Reto.Window : Adw.ApplicationWindow {
         );
         action.activate.connect ((parameter) => {
             action.set_state (parameter);
-            // "" is every value; otherwise "v" followed by the value.
-            string target = parameter.get_string ();
             var filters = RowModel.copy_filters (
                 wanted_filters, model.n_columns
             );
-            filters[index] = target == "" ? null : target.substring (1);
+            filters[index] = ViewState.decode_filter (parameter.get_string ());
             wanted_filters = filters;
             update_reset ();
             refresh.begin (model);
@@ -260,11 +236,10 @@ public class Reto.Window : Adw.ApplicationWindow {
         all.set_action_and_target_value (action_name, new Variant.string (""));
         menu.append_item (all);
         foreach (var value in values) {
-            // Underscores would be taken as mnemonics.
-            var label = value == "" ? "(empty)" : value.replace ("_", "__");
-            var item = new MenuItem (label, null);
+            var item = new MenuItem (ViewState.filter_label (value), null);
             item.set_action_and_target_value (
-                action_name, new Variant.string ("v" + value)
+                action_name,
+                new Variant.string (ViewState.encode_filter (value))
             );
             menu.append_item (item);
         }
@@ -286,12 +261,8 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     // Reset is only available while there is a sort order or a filter.
     private void update_reset () {
-        bool active = sort_column >= 0;
-        foreach (var value in wanted_filters) {
-            active = active || value != null;
-        }
         var reset = (SimpleAction) lookup_action ("reset");
-        reset.set_enabled (active);
+        reset.set_enabled (ViewState.can_reset (sort_column, wanted_filters));
     }
 
     private void on_reset () {
@@ -315,7 +286,7 @@ public class Reto.Window : Adw.ApplicationWindow {
     // Sorts and filters in a thread, then shows the result. A newer request
     // makes the result of an older one obsolete.
     private async void refresh (RowModel model) {
-        var generation = ++view_generation;
+        var ticket = view_generation.next ();
         sort_spinner.visible = true;
         var column = sort_column;
         var descending = sort_descending;
@@ -331,14 +302,11 @@ public class Reto.Window : Adw.ApplicationWindow {
             Idle.add ((owned) callback);
         });
         yield;
-        if (generation == view_generation) {
-            if (search_view == model.view) {
-                search_anchor = search_row >= 0
-                    ? model.get_record (search_row) : null;
-            }
+        if (view_generation.is_current (ticket)) {
+            search.remember_anchor (model);
             model.show_view (view);
             // Stay on the record the cursor was on, if it is still shown.
-            move_cursor (cursor_position >= 0 ? cursor_position : 0, false);
+            move_cursor (ViewState.cursor_target (cursor_position), false);
             sort_spinner.visible = false;
             if (search_entry.text != "") {
                 // The rows moved, so the matches did too.
@@ -355,7 +323,9 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     // Puts the cursor on a row and scrolls to it. Does nothing without rows.
     private void move_cursor (int position, bool focus) {
-        if (model == null || position >= model.get_n_items ()) {
+        if (model == null || !ViewState.can_move_cursor (
+            position, model.get_n_items ()
+        )) {
             return;
         }
         var flags = Gtk.ListScrollFlags.SELECT;
@@ -382,25 +352,20 @@ public class Reto.Window : Adw.ApplicationWindow {
     }
 
     private void find_step (int delta) {
-        if (search_entry.text != search_query) {
+        if (search.is_stale (search_entry.text)) {
             // The search is still catching up with what was typed.
             run_search.begin (true);
             return;
         }
-        if (search == null || search.count == 0) {
+        if (!search.has_matches) {
             return;
         }
-        search_current = search.step (search_current, delta);
+        search.step (delta);
         show_search (true);
     }
 
     private void reset_search () {
-        search_generation++;
-        search = null;
-        search_query = "";
-        search_view = null;
-        search_anchor = null;
-        search_current = -1;
+        search.reset ();
         show_search (false);
     }
 
@@ -408,92 +373,66 @@ public class Reto.Window : Adw.ApplicationWindow {
     // search is on the first match if ''jump'' is set, otherwise it stays on
     // the record it was on, if that still matches.
     private async void run_search (bool jump) {
-        var generation = ++search_generation;
-        var model = this.model;
-        var query = search_entry.text;
-        if (jump) {
-            search_anchor = null;
-        }
-        if (model == null || query == "") {
-            reset_search ();
+        var request = search.begin (model, search_entry.text, jump);
+        if (request == null) {
+            show_search (false);
             return;
         }
 
         search_count.label = "Searching…";
-        var view = model.view;
-        var anchor = search_anchor;
         SearchResult? result = null;
         SourceFunc callback = run_search.callback;
         new Thread<void> ("csv-search", () => {
-            result = model.find_rows (query, view, MAX_COLUMNS, anchor);
+            result = request.model.find_rows (
+                request.query, request.view, MAX_COLUMNS, request.anchor
+            );
             Idle.add ((owned) callback);
         });
         yield;
-        if (generation != search_generation || model != this.model) {
-            return;
+        if (search.finish (request, result, this.model, jump)) {
+            show_search (jump);
         }
-        search = result;
-        search_query = query;
-        search_view = view;
-        search_anchor = null;
-        search_current = jump ? result.step (-1, 1) : result.anchor_index;
-        show_search (jump);
     }
 
     // Shows the state of the search: the count, the marked cells and the
     // available actions. Scrolls to the match the search is on if ''scroll''.
     private void show_search (bool scroll) {
-        uint count = search != null ? search.count : 0;
         string query = search_entry.text;
-        if (query == "" || search == null) {
-            search_count.label = "";
-        } else if (count == 0) {
-            search_count.label = "No results";
-        } else if (search_current < 0) {
-            search_count.label = (
-                count == 1 ? "%u match" : "%u matches"
-            ).printf (count);
-        } else {
-            search_count.label = "%d of %u".printf (
-                search_current + 1, count
-            );
-        }
-        if (query != "" && search != null && count == 0) {
+        search_count.label = ViewState.describe_search (
+            query, search.result, search.current
+        );
+        if (ViewState.search_failed (query, search.result)) {
             search_entry.add_css_class ("error");
         } else {
             search_entry.remove_css_class ("error");
         }
-        ((SimpleAction) lookup_action ("find-next")).set_enabled (count > 0);
+        ((SimpleAction) lookup_action ("find-next")).set_enabled (
+            search.has_matches
+        );
         ((SimpleAction) lookup_action ("find-previous")).set_enabled (
-            count > 0
+            search.has_matches
         );
 
-        search_row = -1;
-        search_column = -1;
-        if (search_current >= 0) {
-            search_row = (int) search.position_at (search_current);
-            var row = (Row?) model.get_item (search_row);
-            if (row != null) {
-                search_column = search.matcher.first_column (
-                    row.cells, MAX_COLUMNS
-                );
-            }
-        }
+        search.locate (model, MAX_COLUMNS);
         foreach (var cell in cells) {
-            cell.highlight (
-                search != null ? search.matcher : null,
-                search_row, search_column
-            );
+            highlight_cell (cell);
         }
-        if (scroll && search_column >= 0) {
+        if (scroll && search.column >= 0) {
             var column = (Gtk.ColumnViewColumn?) table.columns.get_item (
-                search_column
+                search.column
             );
             // Not FOCUS, which would take the focus from the search entry.
             table.scroll_to (
-                search_row, column, Gtk.ListScrollFlags.SELECT, null
+                search.row, column, Gtk.ListScrollFlags.SELECT, null
             );
         }
+    }
+
+    private void highlight_cell (Cell cell) {
+        cell.highlight (
+            search.result != null ? search.result.matcher : null,
+            search.row, search.column
+        );
     }
 
     private Gtk.ListItemFactory create_factory (int index) {
@@ -512,10 +451,7 @@ public class Reto.Window : Adw.ApplicationWindow {
             var cell = (Cell) list_item.child;
             cell.row = (int) list_item.position;
             cell.text = index < row_cells.length ? row_cells[index] : "";
-            cell.highlight (
-                search != null ? search.matcher : null,
-                search_row, search_column
-            );
+            highlight_cell (cell);
         });
         factory.unbind.connect ((item) => {
             ((Cell) ((Gtk.ListItem) item).child).row = -1;

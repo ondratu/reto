@@ -4,7 +4,9 @@ test_deps = [
   dependency('gio-2.0'),
 ]
 
-foreach name : ['csv-parser', 'row-model', 'search']
+foreach name : [
+  'csv-parser', 'row-model', 'search', 'search-state', 'view-state',
+]
   test_exe = executable('test-' + name,
     ['test-@0@.vala'.format(name), core_sources],
     dependencies: test_deps,
@@ -12,6 +14,14 @@ foreach name : ['csv-parser', 'row-model', 'search']
   )
   test(name, test_exe, args: ['--tap'], protocol: 'tap')
 endforeach
+
+# The accelerators are parsed by GTK, which needs no display for that.
+test_shortcuts = executable('test-shortcuts',
+  ['test-shortcuts.vala', shortcut_sources],
+  dependencies: [test_deps, dependency('gtk4', version: '>= 4.12')],
+  vala_args: ['--target-glib=2.76'],
+)
+test('shortcuts', test_shortcuts, args: ['--tap'], protocol: 'tap')
 
 if get_option('b_coverage')
   run_target('coverage-summary',

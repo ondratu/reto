@@ -41,6 +41,12 @@ English-only and is not translated.
   main loop.
 - Keep the CSV parsing and data model separate from the UI so they can be
   tested without GTK.
+- Keep application logic testable. Whatever can be decided without a widget
+  (texts shown to the user, which action is available, what the search is
+  on, how a request is told from an obsolete one) belongs in a class or
+  function without GTK, with unit tests. The window only connects it to the
+  widgets and runs the threads. When you add UI code, first ask what in it
+  could be a plain function of its inputs, and move that out.
 
 ## Development setup
 
@@ -64,9 +70,14 @@ distribution. CI runs the remaining hooks and a Meson build with
 meson test -C build
 ```
 
-The CSV parsing and the data model (`csv-parser.vala`, `row-model.vala`,
-`row.vala`, `search.vala`) have unit tests in `tests/`; new code in them needs
-tests too.
+The logic that does not need GTK has unit tests in `tests/`: the CSV parsing
+and the data model (`csv-parser.vala`, `row-model.vala`, `row.vala`,
+`search.vala`) and the state of the view (`search-state.vala`,
+`view-state.vala`, `generation.vala`). They are listed as `core_sources` in
+`src/meson.build`, which are built into the tests without GTK, so keep GTK out
+of them. New logic needs tests too: add a `tests/test-<name>.vala` and list it
+in `tests/meson.build`. The table of keyboard shortcuts (`shortcuts.vala`) is
+checked by a test that needs GTK but no display.
 Use `meson test -C build -v` to list every test case.
 
 To see line coverage of the sources (needs only `gcov`), configure a build
@@ -77,8 +88,9 @@ meson setup build-coverage -Db_coverage=true
 ninja -C build-coverage coverage-summary
 ```
 
-`tools/coverage.py` does the same in one step. The UI code is not covered by
-unit tests.
+`tools/coverage.py` does the same in one step. The code that talks to widgets
+(`window.vala`, `application.vala`, `cell.vala`) is not covered by unit tests,
+which is why it should stay thin.
 
 ## Platforms
 

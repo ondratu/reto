@@ -45,16 +45,6 @@ meson compile -C build
 ./build/src/reto
 ```
 
-### Flatpak
-
-The application ID is `cz.zeropage.Reto`.
-
-```sh
-flatpak-builder --user --install --force-clean build-flatpak \
-  cz.zeropage.Reto.yaml
-flatpak run cz.zeropage.Reto
-```
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).

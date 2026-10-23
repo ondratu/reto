@@ -223,6 +223,17 @@ void test_filter_signal () {
     assert_cmpuint (added, CompareOperator.EQ, 2);
 }
 
+void test_position_in () {
+    var model = make_model ("h\nb\na\nc\n");
+    var record = model.get_record (1);
+    var view = model.build_view (0, false, {}, model.view);
+    assert_cmpint (model.position_in (view, record), CompareOperator.EQ, 0);
+
+    view = model.build_view (-1, false, { "c" }, model.view);
+    assert_cmpint (model.position_in (view, record), CompareOperator.EQ, -1);
+    assert_cmpint (model.position_in (view, null), CompareOperator.EQ, -1);
+}
+
 void main (string[] args) {
     Test.init (ref args);
     Test.add_func ("/row-model/empty", test_empty);
@@ -255,5 +266,6 @@ void main (string[] args) {
     Test.add_func ("/row-model/filter-reuses-sort", test_filter_reuses_sort);
     Test.add_func ("/row-model/filter-bad-column", test_filter_bad_column);
     Test.add_func ("/row-model/filter-signal", test_filter_signal);
+    Test.add_func ("/row-model/position-in", test_position_in);
     Test.run ();
 }

@@ -72,6 +72,23 @@ public class Reto.RowModel : Object, ListModel {
     }
 
     /**
+     * Position of a record in a view, or -1 if the view does not show it.
+     * Does not touch the model, so it can run in a thread.
+     */
+    public int position_in (RowView view, Record? record) {
+        if (record == null) {
+            return -1;
+        }
+        uint n = rows_in (view);
+        for (uint i = 0; i < n; i++) {
+            if (record_at (view, i) == record) {
+                return (int) i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Finds the rows of a view with a cell, in one of the first
      * ''max_columns'' columns, that contains ''query'' in any letter case.
      * If ''anchor'' is one of them, its place among the matches is

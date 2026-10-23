@@ -184,6 +184,8 @@ public class Reto.Window : Adw.ApplicationWindow {
         update_status ();
         table.model = new Gtk.SingleSelection (model);
         stack.visible_child_name = "table";
+        // The table may still be scrolled where the previous file was.
+        move_cursor (0, true);
         add_filters.begin (model);
     }
 
@@ -319,10 +321,13 @@ public class Reto.Window : Adw.ApplicationWindow {
         var descending = sort_descending;
         var filters = wanted_filters;
         var previous = model.view;
+        var cursor = get_cursor_record ();
         RowView? view = null;
+        int cursor_position = -1;
         SourceFunc callback = refresh.callback;
         new Thread<void> ("csv-view", () => {
             view = model.build_view (column, descending, filters, previous);
+            cursor_position = model.position_in (view, cursor);
             Idle.add ((owned) callback);
         });
         yield;
@@ -332,12 +337,32 @@ public class Reto.Window : Adw.ApplicationWindow {
                     ? model.get_record (search_row) : null;
             }
             model.show_view (view);
+            // Stay on the record the cursor was on, if it is still shown.
+            move_cursor (cursor_position >= 0 ? cursor_position : 0, false);
             sort_spinner.visible = false;
             if (search_entry.text != "") {
                 // The rows moved, so the matches did too.
                 run_search.begin (false);
             }
         }
+    }
+
+    // The record the cursor is on, or null.
+    private Record? get_cursor_record () {
+        var selection = (Gtk.SingleSelection) table.model;
+        return selection != null ? model.get_record (selection.selected) : null;
+    }
+
+    // Puts the cursor on a row and scrolls to it. Does nothing without rows.
+    private void move_cursor (int position, bool focus) {
+        if (model == null || position >= model.get_n_items ()) {
+            return;
+        }
+        var flags = Gtk.ListScrollFlags.SELECT;
+        if (focus) {
+            flags |= Gtk.ListScrollFlags.FOCUS;
+        }
+        table.scroll_to (position, null, flags, null);
     }
 
     private void on_find () {
@@ -464,8 +489,9 @@ public class Reto.Window : Adw.ApplicationWindow {
             var column = (Gtk.ColumnViewColumn?) table.columns.get_item (
                 search_column
             );
+            // Not FOCUS, which would take the focus from the search entry.
             table.scroll_to (
-                search_row, column, Gtk.ListScrollFlags.NONE, null
+                search_row, column, Gtk.ListScrollFlags.SELECT, null
             );
         }
     }

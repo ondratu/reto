@@ -88,6 +88,33 @@ Planned, grouped by importance:
 | Windows  | Possible in the future     |
 | macOS    | Maybe, if it turns out to work |
 
+## Installation
+
+### Flatpak
+
+Reto is going to be on [Flathub](https://flathub.org/apps/cz.zeropage.Reto):
+
+```sh
+flatpak install flathub cz.zeropage.Reto
+flatpak run cz.zeropage.Reto
+```
+
+### Debian / Ubuntu
+
+There is no package yet, build Reto from source. It needs libadwaita 1.8 or
+newer, which is in Debian 14 and Ubuntu 26.04 or newer:
+
+```sh
+sudo apt install build-essential meson valac git \
+    libgtk-4-dev libadwaita-1-dev
+
+git clone https://github.com/ondratu/reto.git
+cd reto
+meson setup build
+meson compile -C build
+sudo meson install -C build
+```
+
 ## Building
 
 Requirements: Meson, Ninja, `valac`, GTK 4 (>= 4.12) and libadwaita (>= 1.8)

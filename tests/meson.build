@@ -45,6 +45,9 @@ if xvfb_run.found()
     env: {
       'GSETTINGS_BACKEND': 'memory',
       'GDK_BACKEND': 'x11',
+      # There is no session bus to reach the accessibility bus on, and GTK
+      # aborts without one.
+      'GTK_A11Y': 'none',
       'RETO_TEST_PRIVATE_DISPLAY': '1',
     },
     protocol: 'tap',

@@ -80,6 +80,17 @@ in `tests/meson.build`. The table of keyboard shortcuts (`shortcuts.vala`) is
 checked by a test that needs GTK but no display.
 Use `meson test -C build -v` to list every test case.
 
+`tests/test-window.vala` is the exception to "without GTK": it opens the real
+window and checks that the widgets are wired to the actions and to the logic
+behind them (open a file, search, sort, filter, reset). It does not mock the
+widgets; it drives them through actions and properties, finds them by their
+`id` in `window.ui`, and runs the main loop until the result shows. It needs a
+display, so Meson runs it under `xvfb-run` (package `xvfb`) in the `gui`
+suite and skips it where `xvfb-run` is missing. The display is private, so no
+window appears in your desktop; started by hand, the binary skips itself. Run
+only that suite with `meson test -C build --suite gui`. Keep these tests few:
+they check the wiring, the decisions are tested without GTK.
+
 To see line coverage of the sources (needs only `gcov`), configure a build
 with coverage and run the `coverage-summary` target:
 
@@ -89,8 +100,8 @@ ninja -C build-coverage coverage-summary
 ```
 
 `tools/coverage.py` does the same in one step. The code that talks to widgets
-(`window.vala`, `application.vala`, `cell.vala`) is not covered by unit tests,
-which is why it should stay thin.
+(`window.vala`, `application.vala`, `cell.vala`) is covered only by the few
+window tests, which is why it should stay thin.
 
 ## Platforms
 

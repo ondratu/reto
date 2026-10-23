@@ -13,7 +13,7 @@ reto_deps = [
   dependency('glib-2.0', version: '>= 2.76'),
   dependency('gio-2.0'),
   dependency('gtk4', version: '>= 4.12'),
-  dependency('libadwaita-1', version: '>= 1.5'),
+  dependency('libadwaita-1', version: '>= 1.8'),
 ]
 
 # Data handling without any GTK dependency, shared with the unit tests.

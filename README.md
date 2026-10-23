@@ -36,7 +36,7 @@ Planned, roughly in this order:
 
 ## Building
 
-Requirements: Meson, Ninja, `valac`, GTK 4 (>= 4.12) and libadwaita (>= 1.5)
+Requirements: Meson, Ninja, `valac`, GTK 4 (>= 4.12) and libadwaita (>= 1.8)
 development files.
 
 ```sh

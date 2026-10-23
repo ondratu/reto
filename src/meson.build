@@ -30,14 +30,20 @@ core_sources = files(
 # Plain data, kept apart because its unit test needs GTK.
 shortcut_sources = files('shortcuts.vala')
 
-reto_sources = [
-  core_sources,
-  shortcut_sources,
-  'main.vala',
+# The widgets, kept apart from main.vala so the window tests can have a main
+# of their own.
+ui_sources = files(
   'application.vala',
   'cell.vala',
   'window.vala',
   'config.vapi',
+)
+
+reto_sources = [
+  core_sources,
+  shortcut_sources,
+  ui_sources,
+  'main.vala',
   resources,
 ]
 

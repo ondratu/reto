@@ -7,7 +7,6 @@ project('reto', ['c', 'vala'],
 
 app_id = 'cz.zeropage.Reto'
 
-i18n = import('i18n')
 gnome = import('gnome')
 
 cc = meson.get_compiler('c')
@@ -27,15 +26,9 @@ add_project_arguments(
   language: 'c',
 )
 
-add_project_arguments(
-  '-DGETTEXT_PACKAGE="@0@"'.format(meson.project_name()),
-  language: 'c',
-)
-
 subdir('data')
 subdir('src')
 subdir('tests')
-subdir('po')
 
 gnome.post_install(
   gtk_update_icon_cache: true,

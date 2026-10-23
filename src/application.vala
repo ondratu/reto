@@ -41,16 +41,15 @@ public class Reto.Application : Adw.Application {
 
     private void on_about () {
         var about = new Adw.AboutDialog () {
-            application_name = _("Reto"),
+            application_name = "Reto",
             application_icon = Config.APP_ID,
             version = Config.VERSION,
-            comments = _("A simple CSV file viewer"),
+            comments = "A simple CSV file viewer",
             website = "https://github.com/ondratu/reto",
             issue_url = "https://github.com/ondratu/reto/issues",
             license_type = Gtk.License.MIT_X11,
             copyright = "© 2026 Reto contributors",
             developers = { "Ondřej Tůma" },
-            translator_credits = _("translator-credits"),
         };
         about.present (active_window);
     }

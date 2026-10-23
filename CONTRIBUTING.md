@@ -6,8 +6,8 @@ and decisions. It will grow with the project.
 ## Language
 
 Everything in the repository is in English: source code, comments, commit
-messages, issues, documentation and user-visible strings (translations come
-later through gettext).
+messages, issues, documentation and user-visible strings. The application is
+English-only and is not translated.
 
 ## Technology and conventions
 
@@ -20,16 +20,16 @@ later through gettext).
 - **Build system:** Meson. No hand-written Makefiles.
 - **Project layout:** the usual layout of a GNOME application:
   `src/` for sources, `data/` for the `.desktop` file, AppStream metainfo,
-  GSettings schema and icons, `po/` for translations.
+  GSettings schema and icons.
 - **UI definitions:** prefer Blueprint or GtkBuilder `.ui` templates
   (`[GtkTemplate]`) over building widgets by hand where it keeps the code
   readable.
 - **Application ID:** `cz.zeropage.Reto`. It is used for the D-Bus name,
   desktop file, icon, AppStream metainfo and the Flatpak manifest.
 - **Distribution:** native packages (Meson install) and Flatpak
-  (`cz.zeropage.Reto.yaml`). Keep the app working inside the Flatpak sandbox:
-  open files through `Gtk.FileDialog` (portals), do not request broad
-  filesystem access.
+  (the manifest lives in a separate repository). Keep the app working inside
+  the Flatpak sandbox: open files through `Gtk.FileDialog` (portals), do not
+  request broad filesystem access.
 
 ## Design principles
 

@@ -1,16 +1,15 @@
-desktop_file = i18n.merge_file(
+desktop_file = configure_file(
   input: 'cz.zeropage.Reto.desktop.in',
   output: 'cz.zeropage.Reto.desktop',
-  type: 'desktop',
-  po_dir: '../po',
+  copy: true,
   install: true,
   install_dir: get_option('datadir') / 'applications',
 )
 
-metainfo_file = i18n.merge_file(
+metainfo_file = configure_file(
   input: 'cz.zeropage.Reto.metainfo.xml.in',
   output: 'cz.zeropage.Reto.metainfo.xml',
-  po_dir: '../po',
+  copy: true,
   install: true,
   install_dir: get_option('datadir') / 'metainfo',
 )

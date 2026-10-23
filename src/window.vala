@@ -125,9 +125,9 @@ public class Reto.Window : Adw.ApplicationWindow {
         } catch (Error e) {
             stack.visible_child_name = previous_page;
             var dialog = new Adw.AlertDialog (
-                _("Could not open file"), e.message
+                "Could not open file", e.message
             );
-            dialog.add_response ("close", _("_Close"));
+            dialog.add_response ("close", "_Close");
             dialog.present (this);
         }
     }
@@ -194,7 +194,7 @@ public class Reto.Window : Adw.ApplicationWindow {
             return;
         }
         var text = new StringBuilder ();
-        text.append (_("%u of %u rows").printf (
+        text.append ("%u of %u rows".printf (
             model.get_n_items (), model.n_rows
         ));
         for (int i = 0; i < int.min (model.n_columns, MAX_COLUMNS); i++) {
@@ -202,7 +202,7 @@ public class Reto.Window : Adw.ApplicationWindow {
             if (value != null) {
                 text.append_printf (
                     "  ·  %s: %s", model.get_column_title (i),
-                    value == "" ? _("(empty)") : value
+                    value == "" ? "(empty)" : value
                 );
             }
         }
@@ -256,12 +256,12 @@ public class Reto.Window : Adw.ApplicationWindow {
 
         var menu = new Menu ();
         var action_name = "win." + name;
-        var all = new MenuItem (_("All values"), null);
+        var all = new MenuItem ("All values", null);
         all.set_action_and_target_value (action_name, new Variant.string (""));
         menu.append_item (all);
         foreach (var value in values) {
             // Underscores would be taken as mnemonics.
-            var label = value == "" ? _("(empty)") : value.replace ("_", "__");
+            var label = value == "" ? "(empty)" : value.replace ("_", "__");
             var item = new MenuItem (label, null);
             item.set_action_and_target_value (
                 action_name, new Variant.string ("v" + value)
@@ -419,7 +419,7 @@ public class Reto.Window : Adw.ApplicationWindow {
             return;
         }
 
-        search_count.label = _("Searching…");
+        search_count.label = "Searching…";
         var view = model.view;
         var anchor = search_anchor;
         SearchResult? result = null;
@@ -448,13 +448,13 @@ public class Reto.Window : Adw.ApplicationWindow {
         if (query == "" || search == null) {
             search_count.label = "";
         } else if (count == 0) {
-            search_count.label = _("No results");
+            search_count.label = "No results";
         } else if (search_current < 0) {
-            search_count.label = ngettext (
-                "%u match", "%u matches", count
+            search_count.label = (
+                count == 1 ? "%u match" : "%u matches"
             ).printf (count);
         } else {
-            search_count.label = _("%d of %u").printf (
+            search_count.label = "%d of %u".printf (
                 search_current + 1, count
             );
         }
@@ -525,13 +525,13 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     private void on_open () {
         var csv_filter = new Gtk.FileFilter () {
-            name = _("CSV files"),
+            name = "CSV files",
         };
         csv_filter.add_mime_type ("text/csv");
         csv_filter.add_suffix ("csv");
 
         var all_filter = new Gtk.FileFilter () {
-            name = _("All files"),
+            name = "All files",
         };
         all_filter.add_pattern ("*");
 
@@ -540,7 +540,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         filters.append (all_filter);
 
         var dialog = new Gtk.FileDialog () {
-            title = _("Open CSV File"),
+            title = "Open CSV File",
             filters = filters,
             default_filter = csv_filter,
         };

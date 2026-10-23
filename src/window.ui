@@ -3,7 +3,7 @@
   <requires lib="gtk" version="4.10"/>
   <requires lib="libadwaita" version="1.5"/>
   <template class="RetoWindow" parent="AdwApplicationWindow">
-    <property name="title" translatable="yes">Reto</property>
+    <property name="title">Reto</property>
     <property name="default-width">900</property>
     <property name="default-height">600</property>
     <property name="content">
@@ -12,7 +12,7 @@
           <object class="AdwHeaderBar">
             <child type="start">
               <object class="GtkButton">
-                <property name="label" translatable="yes">_Open</property>
+                <property name="label">_Open</property>
                 <property name="use-underline">true</property>
                 <property name="action-name">win.open</property>
               </object>
@@ -21,7 +21,7 @@
               <object class="GtkButton">
                 <property name="icon-name">edit-clear-all-symbolic</property>
                 <property name="action-name">win.reset</property>
-                <property name="tooltip-text" translatable="yes">Reset Sorting and Filters</property>
+                <property name="tooltip-text">Reset Sorting and Filters</property>
               </object>
             </child>
             <child type="end">
@@ -29,14 +29,14 @@
                 <property name="icon-name">open-menu-symbolic</property>
                 <property name="menu-model">primary_menu</property>
                 <property name="primary">true</property>
-                <property name="tooltip-text" translatable="yes">Main Menu</property>
+                <property name="tooltip-text">Main Menu</property>
               </object>
             </child>
             <child type="end">
               <object class="GtkToggleButton" id="search_button">
                 <property name="icon-name">system-search-symbolic</property>
                 <property name="sensitive">false</property>
-                <property name="tooltip-text" translatable="yes">Find</property>
+                <property name="tooltip-text">Find</property>
                 <property name="active" bind-source="search_bar" bind-property="search-mode-enabled" bind-flags="sync-create|bidirectional"/>
               </object>
             </child>
@@ -50,11 +50,11 @@
                 <property name="child">
                   <object class="AdwStatusPage">
                     <property name="icon-name">x-office-spreadsheet-symbolic</property>
-                    <property name="title" translatable="yes">Open a CSV File</property>
-                    <property name="description" translatable="yes">Choose a file to view its data.</property>
+                    <property name="title">Open a CSV File</property>
+                    <property name="description">Choose a file to view its data.</property>
                     <property name="child">
                       <object class="GtkButton">
-                        <property name="label" translatable="yes">_Open…</property>
+                        <property name="label">_Open…</property>
                         <property name="use-underline">true</property>
                         <property name="halign">center</property>
                         <property name="action-name">win.open</property>
@@ -97,7 +97,7 @@
                               <object class="GtkSearchEntry" id="search_entry">
                                 <property name="hexpand">true</property>
                                 <property name="max-width-chars">40</property>
-                                <property name="placeholder-text" translatable="yes">Find in the table</property>
+                                <property name="placeholder-text">Find in the table</property>
                               </object>
                             </child>
                             <child>
@@ -111,14 +111,14 @@
                               <object class="GtkButton">
                                 <property name="icon-name">go-up-symbolic</property>
                                 <property name="action-name">win.find-previous</property>
-                                <property name="tooltip-text" translatable="yes">Previous Match</property>
+                                <property name="tooltip-text">Previous Match</property>
                               </object>
                             </child>
                             <child>
                               <object class="GtkButton">
                                 <property name="icon-name">go-down-symbolic</property>
                                 <property name="action-name">win.find-next</property>
-                                <property name="tooltip-text" translatable="yes">Next Match</property>
+                                <property name="tooltip-text">Next Match</property>
                               </object>
                             </child>
                           </object>
@@ -178,11 +178,11 @@
   <menu id="primary_menu">
     <section>
       <item>
-        <attribute name="label" translatable="yes">_About Reto</attribute>
+        <attribute name="label">_About Reto</attribute>
         <attribute name="action">app.about</attribute>
       </item>
       <item>
-        <attribute name="label" translatable="yes">_Quit</attribute>
+        <attribute name="label">_Quit</attribute>
         <attribute name="action">app.quit</attribute>
       </item>
     </section>

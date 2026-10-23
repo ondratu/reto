@@ -103,6 +103,20 @@ ninja -C build-coverage coverage-summary
 (`window.vala`, `application.vala`, `cell.vala`) is covered only by the few
 window tests, which is why it should stay thin.
 
+## ChangeLog
+
+Every change that users can see or that affects them gets an entry in
+`ChangeLog.md`, under the `Unreleased` heading at the top (add it if the
+newest release is already on top), in the same commit as the change. That is
+a new feature, a changed or fixed behavior, a changed shortcut or text,
+a new requirement. Changes that users do not notice do not belong there:
+refactoring, new or changed tests, CI, comments, code style.
+
+Write the entry for users, in English, as one short line in the sections
+`Added`, `Changed`, `Fixed` or `Removed`. When releasing, rename `Unreleased`
+to the version and the date, and keep the version in `meson.build` and the
+`<release>` in the AppStream metainfo the same.
+
 ## Platforms
 
 Linux is the primary target. Avoid Linux-only APIs where a portable

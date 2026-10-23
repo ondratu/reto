@@ -182,7 +182,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         this.model = model;
         status_handler = model.items_changed.connect (update_status);
         update_status ();
-        table.model = new Gtk.NoSelection (model);
+        table.model = new Gtk.SingleSelection (model);
         stack.visible_child_name = "table";
         add_filters.begin (model);
     }

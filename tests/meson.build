@@ -23,6 +23,38 @@ test_shortcuts = executable('test-shortcuts',
 )
 test('shortcuts', test_shortcuts, args: ['--tap'], protocol: 'tap')
 
+# The window tests need a display. They run under Xvfb where it is
+# installed, and are skipped otherwise. The display is private, so the
+# windows do not appear in the desktop of whoever runs the tests.
+xvfb_run = find_program('xvfb-run', required: false)
+if xvfb_run.found()
+  test_window = executable('test-window',
+    [
+      'test-window.vala',
+      core_sources,
+      shortcut_sources,
+      ui_sources,
+      resources,
+    ],
+    dependencies: reto_deps,
+    include_directories: include_directories('../src'),
+    vala_args: ['--target-glib=2.76'],
+  )
+  test('window', xvfb_run,
+    args: ['--auto-servernum', test_window, '--tap'],
+    env: {
+      'GSETTINGS_BACKEND': 'memory',
+      'GDK_BACKEND': 'x11',
+      'RETO_TEST_PRIVATE_DISPLAY': '1',
+    },
+    protocol: 'tap',
+    suite: 'gui',
+    timeout: 60,
+  )
+else
+  message('xvfb-run not found, the window tests will not run')
+endif
+
 if get_option('b_coverage')
   run_target('coverage-summary',
     command: [

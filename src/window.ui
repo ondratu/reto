@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk" version="4.10"/>
-  <requires lib="libadwaita" version="1.5"/>
+  <requires lib="gtk" version="4.12"/>
+  <requires lib="libadwaita" version="1.8"/>
   <template class="RetoWindow" parent="AdwApplicationWindow">
     <property name="title">Reto</property>
     <property name="default-width">900</property>

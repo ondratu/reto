@@ -9,7 +9,7 @@
     <name>Ondřej Tůma</name>
   </developer>
   <description>
-    <p>Reto is a simple viewer for CSV files. It shows the data in a table with the header row as column titles and lets you sort it by any column.</p>
+    <p>Reto is a simple viewer for CSV files. It shows the data in a table with the header row as column titles and lets you sort it by any column, filter it by columns with few distinct values and search in it.</p>
   </description>
   <launchable type="desktop-id">cz.zeropage.Reto.desktop</launchable>
   <provides>

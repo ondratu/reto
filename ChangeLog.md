@@ -2,7 +2,7 @@
 
 All changes of Reto that are visible to users. The newest release is on top.
 
-## Unreleased
+## 0.1.1 - 2026-10-26
 
 ### Added
 

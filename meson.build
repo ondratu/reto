@@ -1,5 +1,5 @@
 project('reto', ['c', 'vala'],
-  version: '0.1.0',
+  version: '0.1.1',
   meson_version: '>= 0.62.0',
   license: 'MIT',
   default_options: ['warning_level=1'],

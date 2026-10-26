@@ -12,11 +12,22 @@
     <p>Reto is a simple viewer for CSV files. It shows the data in a table with the header row as column titles and lets you sort it by any column, filter it by columns with few distinct values and search in it.</p>
   </description>
   <launchable type="desktop-id">cz.zeropage.Reto.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image type="source" width="1700" height="1000">https://reto.zeropage.cz/assets/screenshot.png</image>
+      <caption>A CSV file sorted by a column, with the search matches marked</caption>
+    </screenshot>
+  </screenshots>
   <provides>
     <mediatype>text/csv</mediatype>
   </provides>
   <url type="homepage">https://github.com/ondratu/reto</url>
+  <url type="vcs-browser">https://github.com/ondratu/reto</url>
   <url type="bugtracker">https://github.com/ondratu/reto/issues</url>
+  <branding>
+    <color type="primary" scheme_preference="light">#f9c74f</color>
+    <color type="primary" scheme_preference="dark">#8a6317</color>
+  </branding>
   <content_rating type="oars-1.1"/>
   <requires>
     <display_length compare="ge">360</display_length>

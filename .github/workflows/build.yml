@@ -12,8 +12,13 @@ permissions:
 
 jobs:
   meson:
-    name: Build and test with Meson
-    runs-on: ubuntu-26.04
+    name: Build and test with Meson (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Flathub builds for both architectures
+        os: [ubuntu-26.04, ubuntu-26.04-arm]
 
     steps:
       - name: Checkout

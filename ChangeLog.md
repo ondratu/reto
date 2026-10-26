@@ -2,6 +2,13 @@
 
 All changes of Reto that are visible to users. The newest release is on top.
 
+## Unreleased
+
+### Added
+
+- A screenshot, brand colors and a link to the source code in the application
+  description (AppStream metainfo), for software centers and Flathub.
+
 ## 0.1.0 - 2026-10-21
 
 The first release.

@@ -166,10 +166,6 @@ figure.hero-screenshot img {
   max-width: min(900px, 100%);
   display: block;
   margin: 0 auto;
-  border-radius: var(--radius) var(--radius) 0 0;
-  box-shadow: 0 -4px 40px rgba(0,0,0,.5);
-  border: 1px solid rgba(255,255,255,.1);
-  border-bottom: none;
 }
 figure.hero-screenshot figcaption {
   background: rgba(0,0,0,.35);

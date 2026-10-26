@@ -160,6 +160,19 @@ section > section > h3 {
   border: 1px solid rgba(255,255,255,.3);
 }
 
+/* Unavailable action (e.g. Flatpak while Flathub review is pending) */
+#reto > ul.simple li:nth-child(n) > p a.disabled {
+  display: inline-block;
+  padding: .65rem 1.5rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 1rem;
+  background: rgba(255,255,255,.08); color: #7d8aa3;
+  border: 1px dashed rgba(255,255,255,.25);
+  cursor: not-allowed;
+}
+#reto > ul.simple li:nth-child(n) > p a.disabled:hover { filter: none; transform: none; }
+
 /* Hero screenshot */
 figure.hero-screenshot { margin: 0 auto; max-width: min(900px, 100%); }
 figure.hero-screenshot img {

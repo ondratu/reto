@@ -1,4 +1,7 @@
 .. Reto — GitHub Pages landing page
+.. role:: raw-html(raw)
+   :format: html
+
 .. Build: rst2html5 --stylesheet=_static/style.css --link-stylesheet --no-doc-title index.rst index.html
 
 Reto
@@ -11,7 +14,7 @@ Reto
 A simple, fast CSV file viewer for the GNOME desktop —
 sort, filter and search your data in a table.
 
-- `Install via Flatpak <https://flathub.org/apps/cz.zeropage.Reto>`__
+- :raw-html:`<a class="disabled" aria-disabled="true" title="Flathub review is in progress, see Installation for building the Flatpak yourself">Flatpak: coming soon</a>`
 - `View on GitHub <https://github.com/ondratu/reto>`__
 - `Other platforms <#installation>`__
 
@@ -74,17 +77,17 @@ on the command line.
 Installation
 ============
 
-.. image:: https://flathub.org/assets/badges/flathub-badge-en.png
-   :target: https://flathub.org/apps/cz.zeropage.Reto
-   :alt: Get it on Flathub
-   :height: 56
-
-The easiest way to install Reto is via Flatpak from Flathub —
-available for any Linux distribution that supports Flatpak.
+Reto is being reviewed for `Flathub <https://github.com/flathub/flathub/pull/10847>`__,
+so ``flatpak install flathub cz.zeropage.Reto`` does not work yet.
+Until it is accepted, you can build the Flatpak from the manifest in the
+pull request, on any Linux distribution that supports Flatpak:
 
 .. code-block:: sh
 
-   flatpak install flathub cz.zeropage.Reto
+   git clone --branch new-pr https://github.com/ondratu/flathub.git
+   cd flathub
+   flatpak-builder --user --install --install-deps-from=flathub \
+                   --force-clean build-dir cz.zeropage.Reto.yaml
    flatpak run cz.zeropage.Reto
 
 
@@ -166,7 +169,7 @@ Contribute
    **Reto** — MIT ·
    `GitHub <https://github.com/ondratu/reto>`__ ·
    `Issues <https://github.com/ondratu/reto/issues>`__ ·
-   `Flathub <https://flathub.org/apps/cz.zeropage.Reto>`__
+   `Flathub (in review) <https://github.com/flathub/flathub/pull/10847>`__
 
    Made with ❤️ by `Ondřej Tůma <mailto:mcbig@zeropage.cz>`__ and
    `contributors <https://github.com/ondratu/reto/graphs/contributors>`__.

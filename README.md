@@ -92,10 +92,16 @@ Planned, grouped by importance:
 
 ### Flatpak
 
-Reto is going to be on [Flathub](https://flathub.org/apps/cz.zeropage.Reto):
+Reto is being reviewed for
+[Flathub](https://github.com/flathub/flathub/pull/10847), so
+`flatpak install flathub cz.zeropage.Reto` does not work yet. Until it is
+accepted, build the Flatpak from the manifest in the pull request:
 
 ```sh
-flatpak install flathub cz.zeropage.Reto
+git clone --branch new-pr https://github.com/ondratu/flathub.git
+cd flathub
+flatpak-builder --user --install --install-deps-from=flathub \
+    --force-clean build-dir cz.zeropage.Reto.yaml
 flatpak run cz.zeropage.Reto
 ```
 

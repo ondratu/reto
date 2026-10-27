@@ -73,7 +73,10 @@ jobs:
 
   publish:
     name: Publish repository
-    if: github.event_name == 'release' || inputs.publish
+    # Only a final release or a manual run of main updates the public repository
+    if: >-
+      (github.event_name == 'release' && !github.event.release.prerelease)
+      || (inputs.publish && github.ref == 'refs/heads/main')
     needs: build
     runs-on: ubuntu-26.04
     permissions:
@@ -84,6 +87,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Checkout website
         uses: actions/checkout@v7
         with:
@@ -101,6 +106,7 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
         run: |
+          set -euo pipefail
           home=$(mktemp -d)
           echo "GNUPGHOME=$home" >> "$GITHUB_ENV"
           printf '%s' "$GPG_PRIVATE_KEY" \
@@ -108,6 +114,8 @@ jobs:
           gpg --homedir "$home" --list-secret-keys --with-colons \
             | awk -F: '$1 == "fpr" { print "GPG_KEY_ID=" $10; exit }' \
             >> "$GITHUB_ENV"
+          grep -q '^GPG_KEY_ID=.' "$GITHUB_ENV" \
+            || { echo "No signing key imported" >&2; exit 1; }
       - name: Build the repository
         run: tools/publish-flatpak-repo.sh dist site/flatpak "$GPG_KEY_ID"
       - name: Push to the website
@@ -125,6 +133,7 @@ jobs:
             exit 0
           fi
           git commit -m "Update the Flatpak repository ($REF_NAME)"
+          git pull --rebase origin gh-pages
           git push origin gh-pages
           # A push made with GITHUB_TOKEN does not start the website workflow
           gh workflow run pages.yml --ref gh-pages

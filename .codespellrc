@@ -1,2 +1,3 @@
 [codespell]
 skip = ./build,./.flatpak-builder,./.git,./po,./LICENSE
+ignore-words-list = fpr

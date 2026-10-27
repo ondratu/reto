@@ -29,6 +29,7 @@ flatpak-builder \
 
 flatpak build-bundle \
     --arch="$arch" \
+    --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo \
     "$work/repo-$arch" \
     "$out/$app_id-$arch.flatpak" \
     "$app_id"

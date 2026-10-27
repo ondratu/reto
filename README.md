@@ -2,6 +2,10 @@
 
 A simple, fast CSV file viewer for the GNOME desktop.
 
+*Reto* is Esperanto for a net or a network. A CSV file is exactly that: a net
+of rows and columns, woven from plain text. Reto lets you look at it as a whole,
+pull on any thread (sort, filter, search) and never get tangled up.
+
 Reto opens a CSV file, parses its header and shows the data in a table that
 you can sort, filter and search. It is a viewer: editing is not planned. The
 aim is to be as standard a GNOME application as possible.
@@ -22,6 +26,8 @@ Done:
 - [x] Filter by an enum-like column (a column with few distinct values)
 - [x] Search in the data (jump between matches)
 - [x] Keyboard shortcuts dialog
+- [x] AppStream metainfo (screenshot, branding, keywords), validated in CI
+- [x] Flatpak manifest, bundles and a signed Flatpak repository
 
 Planned, grouped by importance:
 
@@ -32,9 +38,6 @@ Planned, grouped by importance:
 - [ ] Accessibility: check the table, the headers and the find bar with
       a screen reader (Orca), add the missing labels
 - [ ] Remember the window size and state (GSettings)
-- [ ] Complete the AppStream metainfo (screenshots, branding, categories,
-      keywords, longer description) and validate it in CI
-- [ ] Flatpak manifest and a Flathub submission
 
 ### Should: what people expect from a data viewer
 

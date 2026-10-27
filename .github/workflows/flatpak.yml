@@ -1,18 +1,13 @@
 ---
 name: Flatpak
 
-# Manual only: builds the Flatpak bundles for both architectures, like Flathub
-# does. Give a tag to also attach the bundles to the release of that tag.
+# Builds the Flatpak bundles for both architectures, like Flathub does.
+# Run manually, the bundles are kept as build artifacts. Run by publishing a
+# release, the bundles are also attached to that release.
 on:
-  # TEMPORARY: remove before merging, lets the branch be tested before main
-  push:
-    branches: [flatpak-ci]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Release tag to attach bundles to (empty = artifacts only)
-        required: false
-        default: ""
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -51,7 +46,7 @@ jobs:
 
   release:
     name: Attach to release
-    if: inputs.tag != ''
+    if: github.event_name == 'release'
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -66,6 +61,6 @@ jobs:
       - name: Upload to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "${{ inputs.tag }}" dist/*.flatpak \
-            --clobber --repo "${{ github.repository }}"
+          TAG: ${{ github.event.release.tag_name }}
+          REPO: ${{ github.repository }}
+        run: gh release upload "$TAG" dist/*.flatpak --clobber --repo "$REPO"

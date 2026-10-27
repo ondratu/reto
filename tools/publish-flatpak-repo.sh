@@ -41,7 +41,6 @@ for bundle in "${files[@]}"; do
 done
 
 flatpak build-update-repo \
-    --generate-static-deltas --prune \
     --title=Reto \
     --gpg-sign="$key" --gpg-homedir="$gnupg" \
     "$repo"

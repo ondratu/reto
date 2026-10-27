@@ -28,3 +28,13 @@ trim_trailing_whitespace = false
 # The license text is kept verbatim
 [LICENSE]
 max_line_length = off
+
+# Examples in other encodings, to try the encoding detection on
+[data/examples/*-iso-8859-1.csv]
+charset = latin1
+
+[data/examples/*-windows-1250.csv]
+charset = unset
+
+[data/examples/*-broken-encoding.csv]
+charset = unset

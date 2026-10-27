@@ -4,6 +4,9 @@ name: Flatpak
 # Manual only: builds the Flatpak bundles for both architectures, like Flathub
 # does. Give a tag to also attach the bundles to the release of that tag.
 on:
+  # TEMPORARY: remove before merging, lets the branch be tested before main
+  push:
+    branches: [flatpak-ci]
   workflow_dispatch:
     inputs:
       tag:

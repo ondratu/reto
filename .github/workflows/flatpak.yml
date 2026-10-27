@@ -3,9 +3,15 @@ name: Flatpak
 
 # Builds the Flatpak bundles for both architectures, like Flathub does.
 # Run manually, the bundles are kept as build artifacts. Run by publishing a
-# release, the bundles are also attached to that release.
+# release, the bundles are also attached to that release and the signed
+# Flatpak repository on the website (the gh-pages branch) is updated.
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Also update the Flatpak repository on the website
+        type: boolean
+        default: false
   release:
     types: [published]
 
@@ -64,3 +70,61 @@ jobs:
           TAG: ${{ github.event.release.tag_name }}
           REPO: ${{ github.repository }}
         run: gh release upload "$TAG" dist/*.flatpak --clobber --repo "$REPO"
+
+  publish:
+    name: Publish repository
+    if: github.event_name == 'release' || inputs.publish
+    needs: build
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+      actions: write
+    concurrency:
+      group: flatpak-publish
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Checkout website
+        uses: actions/checkout@v7
+        with:
+          ref: gh-pages
+          path: site
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y flatpak ostree gnupg
+      - name: Download bundles
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cz.zeropage.Reto-*
+          merge-multiple: true
+          path: dist
+      - name: Import the signing key
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.FLATPAK_GPG_PRIVATE_KEY }}
+        run: |
+          home=$(mktemp -d)
+          echo "GNUPGHOME=$home" >> "$GITHUB_ENV"
+          printf '%s' "$GPG_PRIVATE_KEY" \
+            | gpg --homedir "$home" --batch --import
+          gpg --homedir "$home" --list-secret-keys --with-colons \
+            | awk -F: '$1 == "fpr" { print "GPG_KEY_ID=" $10; exit }' \
+            >> "$GITHUB_ENV"
+      - name: Build the repository
+        run: tools/publish-flatpak-repo.sh dist site/flatpak "$GPG_KEY_ID"
+      - name: Push to the website
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all flatpak
+          if git diff --cached --quiet; then
+            echo "The repository is up to date"
+            exit 0
+          fi
+          git commit -m "Update the Flatpak repository ($REF_NAME)"
+          git push origin gh-pages
+          # A push made with GITHUB_TOKEN does not start the website workflow
+          gh workflow run pages.yml --ref gh-pages

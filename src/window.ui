@@ -154,16 +154,41 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="status_label">
-                        <property name="xalign">0</property>
-                        <property name="ellipsize">end</property>
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
                         <property name="margin-start">12</property>
                         <property name="margin-end">12</property>
-                        <property name="margin-top">6</property>
-                        <property name="margin-bottom">6</property>
-                        <style>
-                          <class name="dim-label"/>
-                        </style>
+                        <child>
+                          <object class="GtkLabel" id="status_label">
+                            <property name="xalign">0</property>
+                            <property name="ellipsize">end</property>
+                            <property name="margin-top">6</property>
+                            <property name="margin-bottom">6</property>
+                            <style>
+                              <class name="dim-label"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="label">·</property>
+                            <property name="visible" bind-source="encoding_button" bind-property="visible" bind-flags="sync-create"/>
+                            <style>
+                              <class name="dim-label"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkMenuButton" id="encoding_button">
+                            <property name="visible">false</property>
+                            <property name="direction">up</property>
+                            <property name="tooltip-text">Character Encoding</property>
+                            <style>
+                              <class name="flat"/>
+                              <class name="dim-label"/>
+                            </style>
+                          </object>
+                        </child>
                       </object>
                     </child>
                   </object>

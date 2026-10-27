@@ -53,16 +53,20 @@ bool wait_for (Condition condition) {
     return true;
 }
 
-string write_csv (string text) {
+string write_bytes (uint8[] data) {
     string path;
     try {
         var fd = FileUtils.open_tmp ("reto-XXXXXX.csv", out path);
-        FileUtils.set_contents (path, text);
+        FileUtils.set_data (path, data);
         FileUtils.close (fd);
     } catch (Error e) {
         error ("%s", e.message);
     }
     return path;
+}
+
+string write_csv (string text) {
+    return write_bytes (text.data);
 }
 
 Reto.Window open_csv (string text) {
@@ -74,6 +78,183 @@ Reto.Window open_csv (string text) {
     FileUtils.remove (path);
     assert_true (loaded);
     return window;
+}
+
+// Starts opening a file and returns at once, the load is asynchronous: wait
+// for the encoding button, or for a dialog that says why there is none.
+Reto.Window open_bytes (uint8[] data, out string path) {
+    path = write_bytes (data);
+    var window = make_window ();
+    window.open_file (File.new_for_path (path));
+    return window;
+}
+
+string first_column_title (Reto.Window window) {
+    var table = widget<Gtk.ColumnView> (window, "table");
+    var column = (Gtk.ColumnViewColumn) table.columns.get_item (0);
+    return column.title;
+}
+
+// "Muž,v" with the ž (U+017E) as the single byte 0x9E of Windows-1250.
+const uint8[] CP1250_MUZ = {
+    'M', 'u', 0x9E, ',', 'v', '\n', 'a', ',', '1', '\n',
+};
+
+void test_encoding_defaults_to_automatic () {
+    var window = make_window ();
+    var action = window_action (window, "encoding");
+    assert_cmpstr (action.state.get_string (), CompareOperator.EQ, "auto");
+    window.destroy ();
+}
+
+void test_encoding_is_detected () {
+    string path;
+    var window = open_bytes (CP1250_MUZ, out path);
+    var shown = widget<Gtk.MenuButton> (window, "encoding_button");
+    assert_true (wait_for (() => shown.label != null));
+    FileUtils.remove (path);
+    assert_cmpstr (shown.label, CompareOperator.EQ, "Windows-1250");
+    assert_cmpstr (first_column_title (window), CompareOperator.EQ, "Muž");
+    window.destroy ();
+}
+
+void test_utf8_is_detected () {
+    var window = open_csv ("Muž,v\na,1\n");
+    assert_cmpstr (
+        widget<Gtk.MenuButton> (window, "encoding_button").label,
+        CompareOperator.EQ, "UTF-8"
+    );
+    assert_cmpstr (first_column_title (window), CompareOperator.EQ, "Muž");
+    window.destroy ();
+}
+
+void test_encoding_choice_reloads () {
+    string path;
+    var window = open_bytes (CP1250_MUZ, out path);
+    var shown = widget<Gtk.MenuButton> (window, "encoding_button");
+    assert_true (wait_for (() => shown.label == "Windows-1250"));
+
+    window.activate_action ("encoding", new Variant.string ("ISO-8859-1"));
+    assert_true (wait_for (() => shown.label == "ISO-8859-1"));
+    assert_cmpstr (
+        window_action (window, "encoding").state.get_string (),
+        CompareOperator.EQ, "ISO-8859-1"
+    );
+    // 0x9E is a control character in ISO-8859-1, not the letter.
+    assert_cmpstr (first_column_title (window), CompareOperator.EQ, "Mu\u009E");
+
+    window.activate_action ("encoding", new Variant.string ("auto"));
+    assert_true (wait_for (() => shown.label == "Windows-1250"));
+    assert_cmpstr (first_column_title (window), CompareOperator.EQ, "Muž");
+    FileUtils.remove (path);
+    window.destroy ();
+}
+
+int choice_index (string id) {
+    var choices = Reto.Encodings.choices ();
+    for (int i = 0; i < choices.length; i++) {
+        if (choices[i].id == id) {
+            return i;
+        }
+    }
+    assert_not_reached ();
+}
+
+void test_broken_encoding_offers_a_choice () {
+    // 0x81 is not assigned in Windows-1250, and the data is not UTF-8.
+    uint8[] data = { 'a', ',', 'b', '\n', 0x81, ',', '1', '\n' };
+    string path;
+    var window = open_bytes (data, out path);
+    assert_true (wait_for (() => window.visible_dialog is Adw.AlertDialog));
+    assert_cmpstr (
+        widget<Gtk.Stack> (window, "stack").visible_child_name,
+        CompareOperator.EQ, "empty"
+    );
+
+    // The dialog itself lets the user pick an encoding that takes every byte.
+    var dialog = (Adw.AlertDialog) window.visible_dialog;
+    var list = (Gtk.DropDown) dialog.extra_child;
+    var choices = Reto.Encodings.choices ();
+    assert_cmpstr (choices[list.selected].id,
+        CompareOperator.EQ, Reto.Encodings.FALLBACK);
+    list.selected = choice_index ("ISO-8859-1");
+    dialog.response ("open");
+    dialog.force_close ();
+
+    var shown = widget<Gtk.MenuButton> (window, "encoding_button");
+    assert_true (wait_for (() => shown.label == "ISO-8859-1"));
+    FileUtils.remove (path);
+    assert_cmpstr (
+        widget<Gtk.Stack> (window, "stack").visible_child_name,
+        CompareOperator.EQ, "table"
+    );
+    assert_cmpstr (
+        window_action (window, "encoding").state.get_string (),
+        CompareOperator.EQ, "ISO-8859-1"
+    );
+    window.destroy ();
+}
+
+void test_failed_reload_keeps_the_state () {
+    string path;
+    var window = open_bytes (CP1250_MUZ, out path);
+    var shown = widget<Gtk.MenuButton> (window, "encoding_button");
+    assert_true (wait_for (() => shown.label == "Windows-1250"));
+
+    // The bytes are not valid UTF-8.
+    window.activate_action ("encoding", new Variant.string ("UTF-8"));
+    assert_true (wait_for (() => window.visible_dialog is Adw.AlertDialog));
+    ((Adw.Dialog) window.visible_dialog).force_close ();
+
+    FileUtils.remove (path);
+    assert_cmpstr (shown.label, CompareOperator.EQ, "Windows-1250");
+    assert_cmpstr (
+        window_action (window, "encoding").state.get_string (),
+        CompareOperator.EQ, "auto"
+    );
+    assert_cmpstr (first_column_title (window), CompareOperator.EQ, "Muž");
+    window.destroy ();
+}
+
+void test_failed_open_keeps_the_shown_file () {
+    string path;
+    var window = open_bytes (CP1250_MUZ, out path);
+    var shown = widget<Gtk.MenuButton> (window, "encoding_button");
+    assert_true (wait_for (() => shown.label == "Windows-1250"));
+    window.activate_action ("encoding", new Variant.string ("ISO-8859-2"));
+    assert_true (wait_for (() => shown.label == "ISO-8859-2"));
+
+    window.open_file (File.new_for_path (path + ".missing"));
+    assert_true (wait_for (() => window.visible_dialog is Adw.AlertDialog));
+    ((Adw.Dialog) window.visible_dialog).force_close ();
+    assert_cmpstr (
+        window_action (window, "encoding").state.get_string (),
+        CompareOperator.EQ, "ISO-8859-2"
+    );
+
+    // A new choice applies to the file that is still shown.
+    window.activate_action ("encoding", new Variant.string ("ISO-8859-1"));
+    assert_true (wait_for (() => shown.label == "ISO-8859-1"));
+    FileUtils.remove (path);
+    window.destroy ();
+}
+
+void test_opening_a_file_resets_the_choice () {
+    string path;
+    var window = open_bytes (CP1250_MUZ, out path);
+    var shown = widget<Gtk.MenuButton> (window, "encoding_button");
+    assert_true (wait_for (() => shown.label != null));
+    window.activate_action ("encoding", new Variant.string ("ISO-8859-1"));
+    assert_true (wait_for (() => shown.label == "ISO-8859-1"));
+
+    window.open_file (File.new_for_path (path));
+    assert_true (wait_for (() => shown.label == "Windows-1250"));
+    FileUtils.remove (path);
+    assert_cmpstr (
+        window_action (window, "encoding").state.get_string (),
+        CompareOperator.EQ, "auto"
+    );
+    window.destroy ();
 }
 
 void test_shortcut_actions_exist () {
@@ -290,5 +471,18 @@ void main (string[] args) {
     Test.add_func ("/window/search-close", test_closing_search_resets_it);
     Test.add_func ("/window/sort-reset", test_sort_enables_reset);
     Test.add_func ("/window/filter", test_filter_menu_filters_rows);
+    Test.add_func ("/window/encoding-default",
+        test_encoding_defaults_to_automatic);
+    Test.add_func ("/window/encoding-detected", test_encoding_is_detected);
+    Test.add_func ("/window/encoding-utf8", test_utf8_is_detected);
+    Test.add_func ("/window/encoding-choice", test_encoding_choice_reloads);
+    Test.add_func ("/window/encoding-broken",
+        test_broken_encoding_offers_a_choice);
+    Test.add_func ("/window/encoding-failed-reload",
+        test_failed_reload_keeps_the_state);
+    Test.add_func ("/window/encoding-failed-open",
+        test_failed_open_keeps_the_shown_file);
+    Test.add_func ("/window/encoding-reset",
+        test_opening_a_file_resets_the_choice);
     Test.run ();
 }

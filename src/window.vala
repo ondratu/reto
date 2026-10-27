@@ -2,6 +2,7 @@
 public class Reto.Window : Adw.ApplicationWindow {
     private const ActionEntry[] ACTION_ENTRIES = {
         { "open", on_open },
+        { "encoding", on_encoding, "s", "'auto'" },
         { "reset", on_reset },
         { "find", on_find },
         { "find-next", on_find_next },
@@ -25,6 +26,7 @@ public class Reto.Window : Adw.ApplicationWindow {
     private string[] filter_actions = {};
     private SearchState search = new SearchState ();
     private GenericArray<Cell> cells = new GenericArray<Cell> ();
+    private File? file = null;
 
     [GtkChild]
     private unowned Gtk.Stack stack;
@@ -34,6 +36,8 @@ public class Reto.Window : Adw.ApplicationWindow {
     private unowned Gtk.Spinner sort_spinner;
     [GtkChild]
     private unowned Gtk.Label status_label;
+    [GtkChild]
+    private unowned Gtk.MenuButton encoding_button;
     [GtkChild]
     private unowned Gtk.SearchBar search_bar;
     [GtkChild]
@@ -49,6 +53,7 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     construct {
         add_action_entries (ACTION_ENTRIES, this);
+        build_encoding_menu ();
 
         var drop_target = new Gtk.DropTarget (
             typeof (File), Gdk.DragAction.COPY
@@ -93,10 +98,44 @@ public class Reto.Window : Adw.ApplicationWindow {
     }
 
     public void open_file (File file) {
-        load.begin (file);
+        // The encoding was chosen for the previous file.
+        load.begin (file, "auto");
     }
 
-    private async void load (File file) {
+    private void build_encoding_menu () {
+        var encoding_menu = new Menu ();
+        var automatic = new MenuItem ("Automatic", null);
+        automatic.set_action_and_target ("win.encoding", "s", "auto");
+        var top = new Menu ();
+        top.append_item (automatic);
+        encoding_menu.append_section (null, top);
+
+        var groups = new Menu ();
+        Menu? group = null;
+        string? group_name = null;
+        foreach (var choice in Encodings.choices ()) {
+            if (choice.group != group_name) {
+                group = new Menu ();
+                group_name = choice.group;
+                groups.append_submenu (group_name, group);
+            }
+            var item = new MenuItem (choice.label, null);
+            item.set_action_and_target ("win.encoding", "s", choice.id);
+            group.append_item (item);
+        }
+        encoding_menu.append_section (null, groups);
+        encoding_button.menu_model = encoding_menu;
+    }
+
+    // The state of the action follows what is shown, so it changes only
+    // when the file has been loaded in the chosen encoding.
+    private void on_encoding (SimpleAction action, Variant? choice) {
+        if (file != null) {
+            load.begin (file, choice.get_string ());
+        }
+    }
+
+    private async void load (File file, string choice) {
         cancellable.cancel ();
         var token = cancellable = new Cancellable ();
         var previous_page = stack.visible_child_name;
@@ -104,33 +143,104 @@ public class Reto.Window : Adw.ApplicationWindow {
 
         try {
             var bytes = yield file.load_bytes_async (token, null);
-            var model = yield parse (bytes);
+            var loaded = yield parse (bytes, choice);
             if (token.is_cancelled ()) {
                 return;
             }
-            show_model (model);
+            this.file = file;
+            show_model (loaded.model);
+            lookup_action ("encoding").change_state (
+                new Variant.string (choice)
+            );
+            encoding_button.label = Encodings.label_of (loaded.encoding);
+            encoding_button.visible = true;
             title = file.get_basename () ?? file.get_uri ();
         } catch (IOError.CANCELLED e) {
             return;
         } catch (Error e) {
+            if (token.is_cancelled ()) {
+                return;
+            }
             stack.visible_child_name = previous_page;
-            var dialog = new Adw.AlertDialog (
-                "Could not open file", e.message
-            );
-            dialog.add_response ("close", "_Close");
-            dialog.present (this);
+            if (e is ConvertError) {
+                present_encoding_error (file, choice, e);
+            } else {
+                var dialog = new Adw.AlertDialog (
+                    "Could not open file", e.message
+                );
+                dialog.add_response ("close", "_Close");
+                dialog.present (this);
+            }
         }
     }
 
-    private async RowModel parse (Bytes bytes) {
-        RowModel? model = null;
+    // The encoding button is in the status line of the table, which is not
+    // shown for a file that could not be read at all, so ask here.
+    private void present_encoding_error (
+        File file, string choice, Error error
+    ) {
+        var tried = choice == "auto" ? Encodings.FALLBACK : choice;
+        var choices = Encodings.choices ();
+        var labels = new string[choices.length];
+        uint selected = 0;
+        for (int i = 0; i < choices.length; i++) {
+            labels[i] = choices[i].label;
+            if (choices[i].id == tried) {
+                selected = i;
+            }
+        }
+        var list = new Gtk.DropDown.from_strings (labels) {
+            selected = selected,
+        };
+        var dialog = new Adw.AlertDialog (
+            "Could not read the file",
+            "%s\n\nChoose the encoding of the file.".printf (error.message)
+        );
+        dialog.extra_child = list;
+        dialog.add_response ("close", "_Cancel");
+        dialog.add_response ("open", "_Open");
+        dialog.set_response_appearance (
+            "open", Adw.ResponseAppearance.SUGGESTED
+        );
+        dialog.default_response = "open";
+        dialog.close_response = "close";
+        dialog.response.connect ((response) => {
+            if (response == "open") {
+                load.begin (file, choices[list.selected].id);
+            }
+        });
+        dialog.present (this);
+    }
+
+    private struct Loaded {
+        public RowModel model;
+        public string encoding;
+    }
+
+    // "auto" detects the encoding, anything else is the user's choice.
+    private async Loaded parse (Bytes bytes, string choice) throws Error {
+        Loaded? loaded = null;
+        Error? failure = null;
         SourceFunc callback = parse.callback;
         new Thread<void> ("csv-parser", () => {
-            model = new RowModel (CsvParser.parse (bytes.get_data ()));
+            var data = bytes.get_data ();
+            var encoding = choice == "auto" ? Encodings.detect (data) : choice;
+            try {
+                var text = Encodings.decode (data, encoding);
+                loaded = Loaded () {
+                    model = new RowModel (CsvParser.parse (text.get_data ())),
+                    encoding = encoding,
+                };
+            } catch (Error e) {
+                failure = e;
+            }
             Idle.add ((owned) callback);
         });
         yield;
-        return model;
+        if (failure != null) {
+            throw failure;
+        }
+        return loaded;
     }
 
     private void show_model (RowModel model) {

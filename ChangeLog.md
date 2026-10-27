@@ -2,6 +2,20 @@
 
 All changes of Reto that are visible to users. The newest release is on top.
 
+## Unreleased
+
+### Added
+
+- Files in a legacy encoding open correctly: Reto uses the byte order mark or
+  valid UTF-8 when there is one, and reads the file as Windows-1250 otherwise.
+- The encoding button in the status line reloads the file in an encoding of
+  your choice (Unicode, Windows, ISO 8859, DOS, Cyrillic, Greek, Hebrew,
+  Arabic, Thai, Japanese, Chinese and Korean ones), and shows the encoding in
+  use.
+- A file that cannot be read in the detected encoding is no longer shown with
+  replaced characters: Reto reports it, and you can choose another encoding.
+- Examples in other encodings in `data/examples/`.
+
 ## 0.1.1 - 2026-10-26
 
 ### Added

@@ -22,6 +22,8 @@ Done:
 - [x] Recent files (provided by the GTK file chooser)
 - [x] Parse the header row and use it for column titles
 - [x] Detect the delimiter (comma, semicolon, tab or pipe)
+- [x] Character encodings: detect UTF-8 and fall back to Windows-1250, with
+      a manual choice of many other encodings
 - [x] Sort the data by a column (numeric columns are sorted as numbers)
 - [x] Filter by an enum-like column (a column with few distinct values)
 - [x] Search in the data (jump between matches)
@@ -33,8 +35,6 @@ Planned, grouped by importance:
 
 ### Key features for GNOME Core or GNOME Circle
 
-- [ ] Character encodings: detect UTF-8 and fall back to a legacy encoding
-      (Windows-1250, ISO-8859-2, ...), with a manual choice
 - [ ] Accessibility: check the table, the headers and the find bar with
       a screen reader (Orca), add the missing labels
 - [ ] Remember the window size and state (GSettings)

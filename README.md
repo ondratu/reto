@@ -92,13 +92,22 @@ Planned, grouped by importance:
 
 ### Flatpak
 
-Reto is not on Flathub yet. Download the `.flatpak` bundle for your
-architecture (`x86_64` or `aarch64`) from the
-[releases](https://github.com/ondratu/reto/releases) and install it:
+Reto is not on Flathub yet. Add the Reto repository and install it, you will
+then get updates with the rest of your Flatpak applications:
+
+```sh
+flatpak remote-add --user --if-not-exists reto \
+    https://reto.zeropage.cz/flatpak/reto.flatpakrepo
+flatpak install --user reto cz.zeropage.Reto
+flatpak run cz.zeropage.Reto
+```
+
+Or download the `.flatpak` bundle for your architecture (`x86_64` or
+`aarch64`) from the [releases](https://github.com/ondratu/reto/releases) and
+install it. A bundle is not updated automatically:
 
 ```sh
 flatpak install --user cz.zeropage.Reto-x86_64.flatpak
-flatpak run cz.zeropage.Reto
 ```
 
 To build the bundle yourself from the manifest in `flatpak/`:
@@ -107,7 +116,9 @@ To build the bundle yourself from the manifest in `flatpak/`:
 tools/build-flatpak.sh            # host architecture, output in dist/
 ```
 
-The *Flatpak* GitHub workflow builds both bundles. It is run manually.
+The *Flatpak* GitHub workflow builds both bundles. It is run manually, or by
+publishing a release, which also attaches the bundles to the release and
+updates the repository.
 
 ### Debian / Ubuntu
 

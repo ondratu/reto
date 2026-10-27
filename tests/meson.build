@@ -5,7 +5,8 @@ test_deps = [
 ]
 
 foreach name : [
-  'csv-parser', 'row-model', 'search', 'search-state', 'view-state',
+  'csv-parser', 'encoding', 'row-model', 'search', 'search-state',
+  'view-state',
 ]
   test_exe = executable('test-' + name,
     ['test-@0@.vala'.format(name), core_sources],

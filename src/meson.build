@@ -19,6 +19,7 @@ reto_deps = [
 # Data handling without any GTK dependency, shared with the unit tests.
 core_sources = files(
   'csv-parser.vala',
+  'encoding.vala',
   'row-model.vala',
   'generation.vala',
   'row.vala',

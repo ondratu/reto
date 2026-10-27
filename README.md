@@ -92,18 +92,22 @@ Planned, grouped by importance:
 
 ### Flatpak
 
-Reto is being reviewed for
-[Flathub](https://github.com/flathub/flathub/pull/10847), so
-`flatpak install flathub cz.zeropage.Reto` does not work yet. Until it is
-accepted, build the Flatpak from the manifest in the pull request:
+Reto is not on Flathub yet. Download the `.flatpak` bundle for your
+architecture (`x86_64` or `aarch64`) from the
+[releases](https://github.com/ondratu/reto/releases) and install it:
 
 ```sh
-git clone --branch new-pr https://github.com/ondratu/flathub.git
-cd flathub
-flatpak-builder --user --install --install-deps-from=flathub \
-    --force-clean build-dir cz.zeropage.Reto.yaml
+flatpak install --user cz.zeropage.Reto-x86_64.flatpak
 flatpak run cz.zeropage.Reto
 ```
+
+To build the bundle yourself from the manifest in `flatpak/`:
+
+```sh
+tools/build-flatpak.sh            # host architecture, output in dist/
+```
+
+The *Flatpak* GitHub workflow builds both bundles. It is run manually.
 
 ### Debian / Ubuntu
 

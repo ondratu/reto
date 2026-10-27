@@ -21,7 +21,7 @@
   <provides>
     <mediatype>text/csv</mediatype>
   </provides>
-  <url type="homepage">https://github.com/ondratu/reto</url>
+  <url type="homepage">https://reto.zeropage.cz/</url>
   <url type="vcs-browser">https://github.com/ondratu/reto</url>
   <url type="bugtracker">https://github.com/ondratu/reto/issues</url>
   <branding>
@@ -38,7 +38,11 @@
     <control>touch</control>
   </supports>
   <releases>
-    <release version="0.1.1" date="2026-10-26"/>
-    <release version="0.1.0" date="2026-10-21"/>
+    <release version="0.1.1" date="2026-10-26">
+      <url type="details">https://github.com/ondratu/reto/releases/tag/v0.1.1</url>
+    </release>
+    <release version="0.1.0" date="2026-10-21">
+      <url type="details">https://github.com/ondratu/reto/releases/tag/v0.1.0</url>
+    </release>
   </releases>
 </component>

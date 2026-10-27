@@ -133,3 +133,20 @@ possibly macOS builds stay feasible.
 
 By contributing, you agree that your contributions are licensed under the
 [MIT License](LICENSE).
+
+## Publishing the Flatpak repository
+
+The *Flatpak* workflow signs the repository with a GPG key kept in the
+`FLATPAK_GPG_PRIVATE_KEY` repository secret and pushes it to the `flatpak/`
+directory of the `gh-pages` branch. Create the key once, without a
+passphrase, and store the secret:
+
+```sh
+gpg --batch --passphrase '' --quick-gen-key 'Reto Flatpak' default default never
+gpg --armor --export-secret-keys 'Reto Flatpak' \
+    | gh secret set FLATPAK_GPG_PRIVATE_KEY
+```
+
+Keep a backup of the key: when it changes, users have to add the repository
+again. The repository is updated by publishing a release, or by running the
+workflow manually with *publish* ticked.

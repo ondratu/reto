@@ -14,7 +14,7 @@ Reto
 A simple, fast CSV file viewer for the GNOME desktop —
 sort, filter and search your data in a table.
 
-- :raw-html:`<a class="disabled" aria-disabled="true" title="Flathub review is in progress, see Installation for building the Flatpak yourself">Flatpak: coming soon</a>`
+- `Install the Flatpak <#installation>`__
 - `View on GitHub <https://github.com/ondratu/reto>`__
 - `Other platforms <#installation>`__
 
@@ -77,18 +77,34 @@ on the command line.
 Installation
 ============
 
-Reto is being reviewed for `Flathub <https://github.com/flathub/flathub/pull/10847>`__,
-so ``flatpak install flathub cz.zeropage.Reto`` does not work yet.
-Until it is accepted, you can build the Flatpak from the manifest in the
-pull request, on any Linux distribution that supports Flatpak:
+Flatpak
+-------
+
+The easiest way, on any Linux distribution that supports
+`Flatpak <https://flatpak.org/setup/>`__. Add the Reto repository once and
+install Reto from it, for ``x86_64`` and ``aarch64``:
 
 .. code-block:: sh
 
-   git clone --branch new-pr https://github.com/ondratu/flathub.git
-   cd flathub
-   flatpak-builder --user --install --install-deps-from=flathub \
-                   --force-clean build-dir cz.zeropage.Reto.yaml
+   flatpak remote-add --user --if-not-exists reto \
+       https://reto.zeropage.cz/flatpak/reto.flatpakrepo
+   flatpak install --user reto cz.zeropage.Reto
    flatpak run cz.zeropage.Reto
+
+Reto is then updated together with your other Flatpak applications
+(``flatpak update``, or your software center). The repository is signed and
+Flatpak checks the signature. The GNOME runtime is installed from Flathub.
+
+You can also install with a single command, or open the file in your
+software center:
+
+.. code-block:: sh
+
+   flatpak install --user https://reto.zeropage.cz/flatpak/cz.zeropage.Reto.flatpakref
+
+A single ``.flatpak`` file for each release is on the
+`releases page <https://github.com/ondratu/reto/releases>`__. It is not
+updated automatically.
 
 
 Debian / Ubuntu
@@ -169,7 +185,7 @@ Contribute
    **Reto** — MIT ·
    `GitHub <https://github.com/ondratu/reto>`__ ·
    `Issues <https://github.com/ondratu/reto/issues>`__ ·
-   `Flathub (in review) <https://github.com/flathub/flathub/pull/10847>`__
+   `Releases <https://github.com/ondratu/reto/releases>`__
 
    Made with ❤️ by `Ondřej Tůma <mailto:mcbig@zeropage.cz>`__ and
    `contributors <https://github.com/ondratu/reto/graphs/contributors>`__.

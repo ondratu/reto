@@ -22,6 +22,8 @@ jobs:
   test:
     name: Build and test
     uses: ./.github/workflows/build.yml
+    with:
+      keep-windows-build: true
 
   build:
     name: Package for Windows (${{ matrix.arch }})
@@ -54,8 +56,14 @@ jobs:
           pacboy: >-
             toolchain:p meson:p vala:p pkgconf:p
             gtk4:p libadwaita:p librsvg:p adwaita-icon-theme:p
+      # The tested build, installed without compiling it again
+      - name: Download the build
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-build-${{ matrix.arch }}
+          path: build
       - name: Build package
-        run: tools/build-windows.sh ${{ matrix.arch }} dist
+        run: tools/build-windows.sh ${{ matrix.arch }} dist build
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:

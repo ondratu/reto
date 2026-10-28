@@ -8,6 +8,11 @@ on:
     branches: [main]
   # The release workflows run the build and tests first
   workflow_call:
+    inputs:
+      keep-windows-build:
+        description: Keep the Windows builds for packaging
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -71,7 +76,17 @@ jobs:
             gtk4:p libadwaita:p
       - name: Build
         run: |
-          meson setup build
+          meson setup build --buildtype=release
           meson compile -C build
       - name: Test
         run: meson test -C build --print-errorlogs
+      # The package is made from this build, so the tested program is the
+      # shipped one and it is not compiled twice.
+      - name: Keep the build for packaging
+        if: inputs.keep-windows-build
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-build-${{ matrix.arch }}
+          path: build
+          retention-days: 1
+          if-no-files-found: error

@@ -4,6 +4,9 @@ test_deps = [
   dependency('gio-2.0'),
 ]
 
+# Lets the tests tell where they run, Vala does not define it itself.
+platform_args = host_machine.system() == 'windows' ? ['--define=WINDOWS'] : []
+
 foreach name : [
   'csv-parser', 'encoding', 'row-model', 'search', 'search-state',
   'view-state',
@@ -11,7 +14,7 @@ foreach name : [
   test_exe = executable('test-' + name,
     ['test-@0@.vala'.format(name), core_sources],
     dependencies: test_deps,
-    vala_args: ['--target-glib=2.76'],
+    vala_args: ['--target-glib=2.76', platform_args],
   )
   test(name, test_exe, args: ['--tap'], protocol: 'tap')
 endforeach

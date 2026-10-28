@@ -20,25 +20,28 @@ arch=${1:-x86_64}
 out=${2:-$root/dist}
 build=${3:-}
 work=$root/.windows
+destdir=$work/install
 stage=$work/Reto
 
 rm -rf "$work"
-mkdir -p "$out" "$stage"
+mkdir -p "$out" "$destdir"
 # The ZIP is made from another directory, so the path must not be relative.
 out=$(cd "$out" && pwd)
 
 if [ -n "$build" ]; then
-    meson install -C "$build" --no-rebuild --destdir "$stage"
+    meson install -C "$build" --no-rebuild --destdir "$destdir"
 else
     meson setup "$work/build" "$root" --buildtype=release
-    meson install -C "$work/build" --destdir "$stage"
+    meson install -C "$work/build" --destdir "$destdir"
 fi
-# The prefix is dropped from the path in the destination on Windows
-if [ ! -f "$stage/bin/reto.exe" ]; then
-    echo "reto.exe was not installed to $stage/bin:" >&2
-    find "$stage" -name 'reto.exe' >&2
+# The files are under the whole prefix of the build, which is the one of
+# MSYS2 (like /ucrt64) without the drive. Take that as the package.
+exe=$(find "$destdir" -name reto.exe | head -n 1)
+if [ -z "$exe" ]; then
+    echo "reto.exe was not installed to $destdir" >&2
     exit 1
 fi
+mv "$(dirname "$(dirname "$exe")")" "$stage"
 
 # Runtime files of GTK that are looked up at run time, not linked
 share=$MSYSTEM_PREFIX/share

@@ -9,8 +9,12 @@ on:
   # The release workflows run the build and tests first
   workflow_call:
     inputs:
-      keep-windows-build:
-        description: Keep the Windows builds for packaging
+      skip-windows:
+        description: Build and test only on Linux
+        type: boolean
+        default: false
+      package-windows:
+        description: Also make the Windows packages from the tested builds
         type: boolean
         default: false
 
@@ -44,6 +48,7 @@ jobs:
         run: meson test -C build --print-errorlogs
 
   windows:
+    if: ${{ !inputs.skip-windows }}
     name: Build and test on Windows (${{ matrix.arch }})
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -71,22 +76,29 @@ jobs:
         with:
           msystem: ${{ matrix.msystem }}
           update: true
+          install: ${{ inputs.package-windows && 'zip' || '' }}
           pacboy: >-
             toolchain:p meson:p vala:p pkgconf:p
             gtk4:p libadwaita:p
+            ${{ inputs.package-windows
+                && 'librsvg:p adwaita-icon-theme:p' || '' }}
       - name: Build
         run: |
           meson setup build --buildtype=release
           meson compile -C build
       - name: Test
         run: meson test -C build --print-errorlogs
-      # The package is made from this build, so the tested program is the
-      # shipped one and it is not compiled twice.
-      - name: Keep the build for packaging
-        if: inputs.keep-windows-build
+      # The package is made from this build and in this job, so the tested
+      # program and libraries are the shipped ones, and nothing is compiled
+      # twice.
+      - name: Build package
+        if: inputs.package-windows
+        run: tools/build-windows.sh ${{ matrix.arch }} dist build
+      - name: Upload package
+        if: inputs.package-windows
         uses: actions/upload-artifact@v7
         with:
-          name: windows-build-${{ matrix.arch }}
-          path: build
-          retention-days: 1
+          name: cz.zeropage.Reto-windows-${{ matrix.arch }}
+          path: dist/*.zip
+          retention-days: 30
           if-no-files-found: error

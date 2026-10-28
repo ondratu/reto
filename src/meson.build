@@ -53,4 +53,6 @@ executable('reto', reto_sources,
   include_directories: include_directories('.'),
   vala_args: ['--target-glib=2.76'],
   install: true,
+  # No console window on Windows, ignored elsewhere
+  win_subsystem: 'windows',
 )

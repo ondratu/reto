@@ -19,8 +19,13 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    name: Build and test
+    uses: ./.github/workflows/build.yml
+
   build:
     name: Build Flatpak (${{ matrix.arch }})
+    needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false

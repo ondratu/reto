@@ -6,6 +6,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # The release workflows run the build and tests first
+  workflow_call:
 
 permissions:
   contents: read
@@ -29,6 +31,44 @@ jobs:
           sudo apt-get install -y meson valac \
             libgtk-4-dev libadwaita-1-dev \
             desktop-file-utils appstream xvfb
+      - name: Build
+        run: |
+          meson setup build
+          meson compile -C build
+      - name: Test
+        run: meson test -C build --print-errorlogs
+
+  windows:
+    name: Build and test on Windows (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: windows-2025
+            msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+          - arch: aarch64
+            runner: windows-11-arm
+            msystem: CLANGARM64
+            prefix: mingw-w64-clang-aarch64
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          pacboy: >-
+            toolchain:p meson:p vala:p pkgconf:p
+            gtk4:p libadwaita:p
       - name: Build
         run: |
           meson setup build

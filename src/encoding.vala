@@ -15,11 +15,36 @@ namespace Reto.Encodings {
         }
     }
 
+    /**
+     * The encodings offered in the menu: all of {@link all_choices} that
+     * the iconv of this system knows. The one of Windows knows fewer than
+     * the glibc of Linux.
+     */
+    public Choice[] choices () {
+        Choice[] supported = {};
+        foreach (var choice in all_choices ()) {
+            if (is_supported (choice.id)) {
+                supported += choice;
+            }
+        }
+        return supported;
+    }
+
+    private bool is_supported (string encoding) {
+        try {
+            // Converting nothing still opens the converter.
+            convert ("", 0, "UTF-8", encoding);
+            return true;
+        } catch (ConvertError e) {
+            return !(e is ConvertError.NO_CONVERSION);
+        }
+    }
+
     // The ids are iconv names, available in the glibc of Linux, which
     // includes the Flatpak runtime. Windows code pages are listed with the
     // ISO and DOS ones used for the same language, as people know them by
     // the language.
-    public Choice[] choices () {
+    public Choice[] all_choices () {
         return {
             Choice ("Unicode", "UTF-8", "UTF-8"),
             Choice ("Unicode", "UTF-16", "UTF-16"),
@@ -92,7 +117,7 @@ namespace Reto.Encodings {
 
     /** The menu label of an encoding, or its own name when it is unlisted. */
     public string label_of (string encoding) {
-        foreach (var choice in choices ()) {
+        foreach (var choice in all_choices ()) {
             if (choice.id == encoding) {
                 return choice.label;
             }

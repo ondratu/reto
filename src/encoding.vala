@@ -158,9 +158,27 @@ namespace Reto.Encodings {
         );
         unowned uint8[] raw = (uint8[]) text;
         raw.length = (int) written;
+        // The iconv of Windows maps bytes a code page leaves undefined to
+        // the control characters U+0080 to U+009F instead of failing like
+        // glibc. No Windows code page has these, so they are an error.
+        if (encoding.up ().has_prefix ("WINDOWS-") && has_c1_control (raw)) {
+            throw new ConvertError.ILLEGAL_SEQUENCE (
+                "Invalid byte sequence in conversion input"
+            );
+        }
         // U+FEFF is EF BB BF in UTF-8, whatever the source encoding was.
         bool bom = written >= 3 && raw[0] == 0xEF && raw[1] == 0xBB
             && raw[2] == 0xBF;
         return new Bytes (bom ? raw[3:raw.length] : raw);
+    }
+
+    /** Whether the UTF-8 data holds a control character U+0080 to U+009F. */
+    private bool has_c1_control (uint8[] utf8) {
+        for (int i = 0; i + 1 < utf8.length; i++) {
+            if (utf8[i] == 0xC2 && utf8[i + 1] >= 0x80 && utf8[i + 1] <= 0x9F) {
+                return true;
+            }
+        }
+        return false;
     }
 }

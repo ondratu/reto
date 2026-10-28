@@ -1,9 +1,11 @@
 ---
 name: Windows
 
-# Builds portable ZIP packages for both architectures. The build and the tests
-# run first. Run manually, the packages are kept as build artifacts. Run by
-# publishing a release, the packages are also attached to that release.
+# Builds portable ZIP packages for both architectures. The build and tests
+# workflow makes them, from the very builds that were tested, and nothing is
+# released when it fails. Run manually, the packages are kept as build
+# artifacts. Run by publishing a release, the packages are also attached to
+# that release.
 on:
   # TEMPORARY, while the Windows package is debugged on its branch: a manual
   # run is only offered for workflows on the default branch, so a push to the
@@ -20,62 +22,15 @@ permissions:
 
 jobs:
   test:
-    name: Build and test
+    name: Build, test and package
     uses: ./.github/workflows/build.yml
     with:
-      keep-windows-build: true
-
-  build:
-    name: Package for Windows (${{ matrix.arch }})
-    needs: test
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: x86_64
-            runner: windows-2025
-            msystem: UCRT64
-          - arch: aarch64
-            runner: windows-11-arm
-            msystem: CLANGARM64
-
-    defaults:
-      run:
-        shell: msys2 {0}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Set up MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: ${{ matrix.msystem }}
-          update: true
-          install: zip
-          pacboy: >-
-            toolchain:p meson:p vala:p pkgconf:p
-            gtk4:p libadwaita:p librsvg:p adwaita-icon-theme:p
-      # The tested build, installed without compiling it again
-      - name: Download the build
-        uses: actions/download-artifact@v8
-        with:
-          name: windows-build-${{ matrix.arch }}
-          path: build
-      - name: Build package
-        run: tools/build-windows.sh ${{ matrix.arch }} dist build
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: cz.zeropage.Reto-windows-${{ matrix.arch }}
-          path: dist/*.zip
-          retention-days: 30
-          if-no-files-found: error
+      package-windows: true
 
   release:
     name: Attach to release
     if: github.event_name == 'release'
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write

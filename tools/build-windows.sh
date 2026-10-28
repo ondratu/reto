@@ -46,8 +46,13 @@ mv "$(dirname "$(dirname "$exe")")" "$stage"
 # Runtime files of GTK that are looked up at run time, not linked
 share=$MSYSTEM_PREFIX/share
 mkdir -p "$stage/share/glib-2.0/schemas" "$stage/share/icons"
-cp "$share"/glib-2.0/schemas/*.gschema.xml "$stage/share/glib-2.0/schemas/"
-glib-compile-schemas "$stage/share/glib-2.0/schemas"
+# Only the schemas of GTK and of the application, not of every package.
+cp "$share"/glib-2.0/schemas/org.gtk.gtk4.*.gschema.xml \
+    "$share"/glib-2.0/schemas/$app_id.*gschema.xml \
+    "$stage/share/glib-2.0/schemas/" 2>/dev/null || true
+if compgen -G "$stage/share/glib-2.0/schemas/*.gschema.xml" >/dev/null; then
+    glib-compile-schemas "$stage/share/glib-2.0/schemas"
+fi
 for theme in Adwaita hicolor; do
     if [ -d "$share/icons/$theme" ]; then
         cp -r "$share/icons/$theme" "$stage/share/icons/"
@@ -67,12 +72,27 @@ if [ -d "$loaders" ]; then
         > "$cache_dir/loaders.cache"
 fi
 
-# Shared libraries of the program and of the loaders
+# Shared libraries of the program and of the loaders. The paths of ldd are
+# converted, as they may be written the Windows way.
 {
     ldd "$stage/bin/reto.exe"
     find "$stage/lib" -name '*.dll' -exec ldd {} + 2>/dev/null || true
-} | awk '/=>/ {print $3}' | grep -i "^$MSYSTEM_PREFIX/" | sort -u \
-    | while read -r dll; do cp -n "$dll" "$stage/bin/"; done
+} | awk '/=>/ {print $3}' | sort -u | while read -r dll; do
+    dll=$(cygpath -u "$dll")
+    case "$dll" in
+        "$MSYSTEM_PREFIX"/*) cp -n "$dll" "$stage/bin/" ;;
+    esac
+done
+if ! compgen -G "$stage/bin/libgtk-4-*.dll" >/dev/null; then
+    echo "The libraries were not copied to $stage/bin" >&2
+    exit 1
+fi
+
+# Run the program with nothing but the package and Windows itself, so a
+# library that is missing fails here and not on the computer of the user.
+# --help needs no display, the program prints it and exits.
+PATH="$stage/bin:$(cygpath -u "$SYSTEMROOT")/System32" \
+    "$stage/bin/reto.exe" --help >/dev/null
 
 (cd "$work" && zip -qr "$out/$app_id-windows-$arch.zip" Reto)
 echo "Built $out/$app_id-windows-$arch.zip"

@@ -156,9 +156,20 @@ void test_all_choices_are_supported () {
     }
 }
 
+// The listed names are checked where the iconv is complete. The one of
+// Windows lacks some encodings, which the menu then leaves out.
+void test_no_choice_is_left_out () {
+#if WINDOWS
+    Test.skip ("The iconv of Windows lacks some encodings");
+#else
+    assert_cmpint (Reto.Encodings.choices ().length, CompareOperator.EQ,
+        Reto.Encodings.all_choices ().length);
+#endif
+}
+
 void test_choices_have_unique_ids () {
     var seen = new GenericSet<string> (str_hash, str_equal);
-    foreach (var choice in Reto.Encodings.choices ()) {
+    foreach (var choice in Reto.Encodings.all_choices ()) {
         assert_true (seen.add (choice.id));
     }
 }
@@ -211,6 +222,7 @@ void main (string[] args) {
     Test.add_func ("/encoding/decode-empty", test_decode_empty);
     Test.add_func ("/encoding/choices-supported",
         test_all_choices_are_supported);
+    Test.add_func ("/encoding/choices-complete", test_no_choice_is_left_out);
     Test.add_func ("/encoding/choices-unique", test_choices_have_unique_ids);
     Test.add_func ("/encoding/choices-fallback",
         test_choices_cover_the_fallback);

@@ -21,14 +21,20 @@ namespace Reto.Encodings {
      * the glibc of Linux.
      */
     public Choice[] choices () {
-        Choice[] supported = {};
-        foreach (var choice in all_choices ()) {
-            if (is_supported (choice.id)) {
-                supported += choice;
+        // The system does not change while the program runs.
+        if (supported_choices == null) {
+            Choice[] supported = {};
+            foreach (var choice in all_choices ()) {
+                if (is_supported (choice.id)) {
+                    supported += choice;
+                }
             }
+            supported_choices = supported;
         }
-        return supported;
+        return supported_choices;
     }
+
+    private Choice[]? supported_choices = null;
 
     private bool is_supported (string encoding) {
         try {
@@ -36,7 +42,7 @@ namespace Reto.Encodings {
             convert ("", 0, "UTF-8", encoding);
             return true;
         } catch (ConvertError e) {
-            return !(e is ConvertError.NO_CONVERSION);
+            return false;
         }
     }
 
@@ -115,7 +121,11 @@ namespace Reto.Encodings {
         };
     }
 
-    /** The menu label of an encoding, or its own name when it is unlisted. */
+    /**
+     * The menu label of an encoding, or its own name when it is unlisted.
+     * It looks in all the encodings, not only the supported ones, because
+     * the label is also needed for an encoding that was named elsewhere.
+     */
     public string label_of (string encoding) {
         foreach (var choice in all_choices ()) {
             if (choice.id == encoding) {
@@ -185,8 +195,9 @@ namespace Reto.Encodings {
         raw.length = (int) written;
         // The iconv of Windows maps bytes a code page leaves undefined to
         // the control characters U+0080 to U+009F instead of failing like
-        // glibc. No Windows code page has these, so they are an error.
-        if (encoding.up ().has_prefix ("WINDOWS-") && has_c1_control (raw)) {
+        // glibc. No code page has these, so they are an error. The ISO ones
+        // do, so they are not checked.
+        if (has_no_c1_controls (encoding) && has_c1_control (raw)) {
             throw new ConvertError.ILLEGAL_SEQUENCE (
                 "Invalid byte sequence in conversion input"
             );
@@ -195,6 +206,13 @@ namespace Reto.Encodings {
         bool bom = written >= 3 && raw[0] == 0xEF && raw[1] == 0xBB
             && raw[2] == 0xBF;
         return new Bytes (bom ? raw[3:raw.length] : raw);
+    }
+
+    /** Whether the encoding is a code page, which has no C1 controls. */
+    private bool has_no_c1_controls (string encoding) {
+        string name = encoding.up ();
+        return name.has_prefix ("WINDOWS-") || name.has_prefix ("CP")
+            || name == "TIS-620";
     }
 
     /** Whether the UTF-8 data holds a control character U+0080 to U+009F. */

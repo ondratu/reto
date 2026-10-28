@@ -126,6 +126,18 @@ void test_decode_undefined_byte_is_an_error () {
     }
 }
 
+void test_decode_undefined_byte_in_other_code_pages_is_an_error () {
+    // 0x81 is not assigned in Windows-874, the Windows iconv maps it to U+0081.
+    foreach (var encoding in new string[] { "CP874", "WINDOWS-1252" }) {
+        try {
+            decode ({ 'a', 0x81, 'b' }, encoding);
+            assert_not_reached ();
+        } catch (Error e) {
+            assert_true (e is ConvertError);
+        }
+    }
+}
+
 void test_decode_unknown_encoding_is_an_error () {
     try {
         decode ("a".data, "NO-SUCH-ENCODING");
@@ -217,6 +229,8 @@ void main (string[] args) {
         test_decode_invalid_utf8_is_an_error);
     Test.add_func ("/encoding/decode-undefined-byte",
         test_decode_undefined_byte_is_an_error);
+    Test.add_func ("/encoding/decode-undefined-byte-code-pages",
+        test_decode_undefined_byte_in_other_code_pages_is_an_error);
     Test.add_func ("/encoding/decode-unknown",
         test_decode_unknown_encoding_is_an_error);
     Test.add_func ("/encoding/decode-empty", test_decode_empty);

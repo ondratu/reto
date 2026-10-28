@@ -18,9 +18,11 @@ stage=$work/Reto
 
 rm -rf "$work"
 mkdir -p "$out" "$stage"
+# The ZIP is made from another directory, so the path must not be relative.
+out=$(cd "$out" && pwd)
 
 meson setup "$work/build" "$root" --prefix="$stage" --buildtype=release
-meson install -C "$work/build" --no-rebuild
+meson install -C "$work/build"
 
 # Runtime files of GTK that are looked up at run time, not linked
 share=$MSYSTEM_PREFIX/share
@@ -33,15 +35,17 @@ for theme in Adwaita hicolor; do
     fi
 done
 
-# Image loaders (SVG icons), with a cache relative to the program
+# Image loaders (SVG icons), with a cache relative to the program. The tool
+# writes absolute paths, with slashes or with escaped backslashes.
 loaders=$MSYSTEM_PREFIX/lib/gdk-pixbuf-2.0
 if [ -d "$loaders" ]; then
     mkdir -p "$stage/lib"
     cp -r "$loaders" "$stage/lib/"
-    GDK_PIXBUF_MODULEDIR=$stage/lib/gdk-pixbuf-2.0/2.10.0/loaders \
-        gdk-pixbuf-query-loaders \
-        | sed "s|$(cygpath -m "$stage")/||g" \
-        > "$stage/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache"
+    cache_dir=$stage/lib/gdk-pixbuf-2.0/2.10.0
+    GDK_PIXBUF_MODULEDIR=$cache_dir/loaders gdk-pixbuf-query-loaders \
+        | sed -e 's|\\\\|/|g' \
+        | sed -e 's|"[^"]*/lib/gdk-pixbuf-2.0/|"lib/gdk-pixbuf-2.0/|' \
+        > "$cache_dir/loaders.cache"
 fi
 
 # Shared libraries of the program and of the loaders

@@ -5,6 +5,12 @@ name: Windows
 # run first. Run manually, the packages are kept as build artifacts. Run by
 # publishing a release, the packages are also attached to that release.
 on:
+  # TEMPORARY, while the Windows package is debugged on its branch: a manual
+  # run is only offered for workflows on the default branch, so a push to the
+  # branch starts it instead. Remove this push trigger before merging into
+  # main.
+  push:
+    branches: [windows-build]
   workflow_dispatch:
   release:
     types: [published]

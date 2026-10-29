@@ -53,30 +53,47 @@ for theme in Adwaita hicolor; do
     fi
 done
 
-# Image loaders (SVG icons), with a cache relative to the program. The tool
-# writes absolute paths, with slashes or with escaped backslashes.
+# Image loaders, with a cache relative to the program. Only the ones the
+# program needs are taken: SVG for the symbolic icons and PNG, the rest would
+# bring libraries for formats like HEIF with them. The tool writes absolute
+# paths, with slashes or with escaped backslashes.
 loaders=$MSYSTEM_PREFIX/lib/gdk-pixbuf-2.0
 if [ -d "$loaders" ]; then
-    mkdir -p "$stage/lib"
-    cp -r "$loaders" "$stage/lib/"
     cache_dir=$stage/lib/gdk-pixbuf-2.0/2.10.0
+    mkdir -p "$cache_dir/loaders"
+    for loader in pixbufloader_svg libpixbufloader-png; do
+        cp "$loaders"/*/loaders/$loader.dll "$cache_dir/loaders/"
+    done
     GDK_PIXBUF_MODULEDIR=$cache_dir/loaders gdk-pixbuf-query-loaders \
         | sed -e 's|\\\\|/|g' \
         | sed -e 's|"[^"]*/lib/gdk-pixbuf-2.0/|"lib/gdk-pixbuf-2.0/|' \
         > "$cache_dir/loaders.cache"
 fi
 
-# Shared libraries of the program and of the loaders. The paths of ldd are
-# converted, as they may be written the Windows way.
-{
-    ldd "$stage/bin/reto.exe"
-    find "$stage/lib" -name '*.dll' -exec ldd {} + 2>/dev/null || true
-} | awk '/=>/ {print $3}' | sort -u | while read -r dll; do
-    dll=$(cygpath -u "$dll")
-    case "$dll" in
-        "$MSYSTEM_PREFIX"/*) cp -n "$dll" "$stage/bin/" ;;
-    esac
-done
+# Shared libraries of the program and of the loaders, with their own
+# libraries. They are read from the import tables of the files, as ldd does
+# not follow them for every architecture. Those of Windows itself are left
+# out, anything else that is not found fails.
+objdump=$(command -v llvm-objdump || command -v objdump)
+system=$(cygpath -u "$SYSTEMROOT")/System32
+add_libraries() {
+    local dll
+    "$objdump" -p "$1" | awk '/DLL Name:/ {print $3}' | while read -r dll; do
+        if [ -e "$stage/bin/$dll" ]; then
+            continue
+        elif [ -e "$MSYSTEM_PREFIX/bin/$dll" ]; then
+            cp "$MSYSTEM_PREFIX/bin/$dll" "$stage/bin/"
+            add_libraries "$stage/bin/$dll"
+        elif [ ! -e "$system/$dll" ] && [[ $dll != api-ms-* ]]; then
+            echo "Library $dll of $1 was not found" >&2
+            exit 1
+        fi
+    done
+}
+add_libraries "$stage/bin/reto.exe"
+while read -r loader; do
+    add_libraries "$loader"
+done < <(find "$stage/lib" -name '*.dll')
 if ! compgen -G "$stage/bin/libgtk-4-*.dll" >/dev/null; then
     echo "The libraries were not copied to $stage/bin" >&2
     exit 1

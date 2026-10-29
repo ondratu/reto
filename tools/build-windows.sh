@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Build a portable Windows ZIP of Reto. Run it in an MSYS2 shell (UCRT64 or
-# CLANGARM64) with the dependencies installed, see
-# .github/workflows/windows.yml.
+# Stage Reto for Windows in .windows/, plus the images the installer needs.
+# The workflow then makes the installer of it with Inno Setup, see
+# packaging/windows/reto.iss. Run it in an MSYS2 shell (UCRT64 or CLANGARM64)
+# with the dependencies installed, see .github/workflows/build.yml.
 #
-# Usage: tools/build-windows.sh [ARCH] [OUTPUT_DIR] [BUILD_DIR]
-#
-# ARCH is only used in the file name (default: x86_64). The ZIP is written to
-# OUTPUT_DIR (default: dist) as cz.zeropage.Reto-windows-<ARCH>.zip.
+# Usage: tools/build-windows.sh [BUILD_DIR]
 #
 # BUILD_DIR is a Meson build directory that is already built, the one the
 # tests ran in. It is installed as it is, without compiling again. It must be
@@ -16,17 +14,13 @@ set -euo pipefail
 
 app_id=cz.zeropage.Reto
 root=$(cd "$(dirname "$0")/.." && pwd)
-arch=${1:-x86_64}
-out=${2:-$root/dist}
-build=${3:-}
+build=${1:-}
 work=$root/.windows
 destdir=$work/install
 stage=$work/Reto
 
 rm -rf "$work"
-mkdir -p "$out" "$destdir"
-# The ZIP is made from another directory, so the path must not be relative.
-out=$(cd "$out" && pwd)
+mkdir -p "$destdir"
 
 if [ -n "$build" ]; then
     meson install -C "$build" --no-rebuild --destdir "$destdir"
@@ -94,5 +88,12 @@ fi
 PATH="$stage/bin:$(cygpath -u "$SYSTEMROOT")/System32" \
     "$stage/bin/reto.exe" --help >/dev/null
 
-(cd "$work" && zip -qr "$out/$app_id-windows-$arch.zip" Reto)
-echo "Built $out/$app_id-windows-$arch.zip"
+# Images of the installer, and the icon of the program, from the SVG icon.
+installer=$work/installer
+mkdir -p "$installer"
+rsvg-convert -w 512 -h 512 -o "$installer/icon.png" \
+    "$root/data/icons/hicolor/scalable/apps/$app_id.svg"
+python3 "$root/packaging/windows/make_images.py" \
+    "$installer/icon.png" "$installer"
+
+echo "Staged $stage"

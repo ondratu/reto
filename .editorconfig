@@ -20,6 +20,12 @@ tab_width = 2
 [*.{ui,xml,in}]
 max_line_length = off
 
+# Inno Setup lines are one entry each, and its Pascal code indents by two
+[*.iss]
+indent_size = 2
+tab_width = 2
+max_line_length = off
+
 [*.md]
 indent_size = 2
 tab_width = 2

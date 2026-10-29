@@ -14,7 +14,7 @@ on:
         type: boolean
         default: false
       package-windows:
-        description: Also make the Windows packages from the tested builds
+        description: Also make the Windows installers from the tested builds
         type: boolean
         default: false
 
@@ -59,10 +59,12 @@ jobs:
             runner: windows-2025
             msystem: UCRT64
             prefix: mingw-w64-ucrt-x86_64
+            setup-arch: x64compatible
           - arch: aarch64
             runner: windows-11-arm
             msystem: CLANGARM64
             prefix: mingw-w64-clang-aarch64
+            setup-arch: arm64
 
     defaults:
       run:
@@ -76,12 +78,12 @@ jobs:
         with:
           msystem: ${{ matrix.msystem }}
           update: true
-          install: ${{ inputs.package-windows && 'zip' || '' }}
           pacboy: >-
             toolchain:p meson:p vala:p pkgconf:p
             gtk4:p libadwaita:p
             ${{ inputs.package-windows
-                && 'librsvg:p adwaita-icon-theme:p' || '' }}
+                && 'librsvg:p adwaita-icon-theme:p
+                    python:p python-pillow:p' || '' }}
       - name: Build
         run: |
           meson setup build --buildtype=release
@@ -91,14 +93,29 @@ jobs:
       # The package is made from this build and in this job, so the tested
       # program and libraries are the shipped ones, and nothing is compiled
       # twice.
-      - name: Build package
+      - name: Stage package
         if: inputs.package-windows
-        run: tools/build-windows.sh ${{ matrix.arch }} dist build
-      - name: Upload package
+        run: tools/build-windows.sh build
+      - name: Install Inno Setup
+        if: inputs.package-windows
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+      - name: Build installer
+        if: inputs.package-windows
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path meson.build `
+            -Pattern "version: '([^']+)'").Matches[0].Groups[1].Value
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=$version" "/DAppArch=${{ matrix.setup-arch }}" `
+            "/DArchName=${{ matrix.arch }}" "/DOutputDir=dist" `
+            packaging\windows\reto.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload installer
         if: inputs.package-windows
         uses: actions/upload-artifact@v7
         with:
           name: cz.zeropage.Reto-windows-${{ matrix.arch }}
-          path: dist/*.zip
+          path: dist/*-setup.exe
           retention-days: 30
           if-no-files-found: error

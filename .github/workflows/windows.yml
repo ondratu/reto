@@ -1,10 +1,10 @@
 ---
 name: Windows
 
-# Builds portable ZIP packages for both architectures. The build and tests
+# Builds the installers for both architectures. The build and tests
 # workflow makes them, from the very builds that were tested, and nothing is
-# released when it fails. Run manually, the packages are kept as build
-# artifacts. Run by publishing a release, the packages are also attached to
+# released when it fails. Run manually, the installers are kept as build
+# artifacts. Run by publishing a release, the installers are also attached to
 # that release.
 on:
   # TEMPORARY, while the Windows package is debugged on its branch: a manual
@@ -35,7 +35,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download packages
+      - name: Download installers
         uses: actions/download-artifact@v8
         with:
           pattern: cz.zeropage.Reto-windows-*
@@ -46,4 +46,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.event.release.tag_name }}
           REPO: ${{ github.repository }}
-        run: gh release upload "$TAG" dist/*.zip --clobber --repo "$REPO"
+        run: gh release upload "$TAG" dist/*-setup.exe --clobber --repo "$REPO"

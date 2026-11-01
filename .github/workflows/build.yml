@@ -47,6 +47,36 @@ jobs:
       - name: Test
         run: meson test -C build --print-errorlogs
 
+  netbsd:
+    if: ${{ !inputs.skip-windows }}
+    name: Build and test on NetBSD
+    runs-on: ubuntu-24.04
+    # Best effort: the VM is slow and the pkgsrc package set changes, so a
+    # failure here does not block a merge.
+    continue-on-error: true
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Start the VM
+        uses: cross-platform-actions/action@v1
+        with:
+          operating_system: netbsd
+          version: "10.1"
+          shell: sh
+      - name: Build and test in the VM
+        # cpa.sh runs the commands inside the VM
+        shell: cpa.sh {0}
+        run: |
+          export PATH=/usr/pkg/bin:/usr/pkg/sbin:$PATH
+          export PKG_CONFIG_PATH=/usr/pkg/lib/pkgconfig:/usr/pkg/share/pkgconfig
+          sudo pkgin -y install meson vala pkgconf gtk4 libadwaita \
+            desktop-file-utils appstream
+          meson setup build
+          meson compile -C build
+          # the window tests are skipped, NetBSD has no xvfb-run
+          meson test -C build --print-errorlogs
+
   windows:
     if: ${{ !inputs.skip-windows }}
     name: Build and test on Windows (${{ matrix.arch }})

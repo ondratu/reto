@@ -169,10 +169,11 @@ void test_all_choices_are_supported () {
 }
 
 // The listed names are checked where the iconv is complete. The one of
-// Windows lacks some encodings, which the menu then leaves out.
+// Windows and of NetBSD lacks some encodings (UTF-32 and TIS-620 on NetBSD),
+// which the menu then leaves out.
 void test_no_choice_is_left_out () {
-#if WINDOWS
-    Test.skip ("The iconv of Windows lacks some encodings");
+#if WINDOWS || NETBSD
+    Test.skip ("The iconv of this system lacks some encodings");
 #else
     assert_cmpint (Reto.Encodings.choices ().length, CompareOperator.EQ,
         Reto.Encodings.all_choices ().length);

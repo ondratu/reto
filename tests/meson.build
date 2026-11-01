@@ -5,7 +5,13 @@ test_deps = [
 ]
 
 # Lets the tests tell where they run, Vala does not define it itself.
-platform_args = host_machine.system() == 'windows' ? ['--define=WINDOWS'] : []
+# NetBSD has an iconv of its own, which lacks some encodings as well.
+platform_args = []
+if host_machine.system() == 'windows'
+  platform_args += '--define=WINDOWS'
+elif host_machine.system() == 'netbsd'
+  platform_args += '--define=NETBSD'
+endif
 
 foreach name : [
   'csv-parser', 'encoding', 'row-model', 'search', 'search-state',

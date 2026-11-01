@@ -89,6 +89,7 @@ Planned, grouped by importance:
 | -------- | -------------------------- |
 | Linux    | Primary target             |
 | Windows  | Possible in the future     |
+| NetBSD   | Builds from source         |
 | macOS    | Maybe, if it turns out to work |
 
 ## Installation
@@ -138,6 +139,31 @@ meson setup build
 meson compile -C build
 sudo meson install -C build
 ```
+
+### NetBSD
+
+There is no package yet, build Reto from source. The dependencies are in
+pkgsrc (NetBSD 10.1 has them in the binary packages for `pkgin`). pkgsrc
+installs to `/usr/pkg`, which is only searched for the dependencies here.
+Reto itself is installed to the default `/usr/local`, so it does not mix with
+the packages:
+
+```sh
+sudo pkgin install meson vala pkgconf gtk4 libadwaita \
+    desktop-file-utils git
+
+export PATH=/usr/pkg/bin:$PATH
+export PKG_CONFIG_PATH=/usr/pkg/lib/pkgconfig:/usr/pkg/share/pkgconfig
+
+git clone https://github.com/ondratu/reto.git
+cd reto
+meson setup build
+meson compile -C build
+sudo meson install -C build
+```
+
+The build is checked by the *Build* GitHub workflow on NetBSD 10.1, but only
+as a best effort: a failure there does not block a merge.
 
 ## Building
 

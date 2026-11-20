@@ -31,6 +31,7 @@ public class Reto.Window : Adw.ApplicationWindow {
     private File? file = null;
     // What the context menu of the table was opened on.
     private Gtk.PopoverMenu cell_popover;
+    private Generation copy_generation = new Generation ();
     private Record? menu_record = null;
     private int menu_column = -1;
     private string menu_text = "";
@@ -207,8 +208,9 @@ public class Reto.Window : Adw.ApplicationWindow {
             return;
         }
         cell_popover.set_pointing_to ({ (int) point.x, (int) point.y, 1, 1 });
-        // The row under the pointer is the one a row copy is about.
-        table.scroll_to (cell.row, null, Gtk.ListScrollFlags.SELECT, null);
+        // The row under the pointer is the one a row copy is about. Do not
+        // scroll, the popover would point to where the cell was.
+        ((Gtk.SingleSelection) table.model).selected = cell.row;
         cell_popover.popup ();
     }
 
@@ -223,29 +225,24 @@ public class Reto.Window : Adw.ApplicationWindow {
             return;
         }
         var scope = target.get_string ();
-        switch (scope) {
-        case CopyText.Scope.CELL:
-            get_clipboard ().set_text (menu_text);
-            break;
-        case CopyText.Scope.ROW:
-        case CopyText.Scope.ROW_HEADER:
-            get_clipboard ().set_text (CopyText.row (
-                model, menu_record,
-                ViewState.shown_columns (model, MAX_COLUMNS),
-                scope == CopyText.Scope.ROW_HEADER
-            ));
-            break;
-        case CopyText.Scope.COLUMN:
-        case CopyText.Scope.COLUMN_HEADER:
-            copy_column.begin (
-                model, menu_column, scope == CopyText.Scope.COLUMN_HEADER
-            );
-            break;
+        if (CopyText.is_column (scope)) {
+            copy_column.begin (model, menu_column, CopyText.has_header (scope));
+            return;
+        }
+        copy_generation.invalidate ();
+        var text = CopyText.for_scope (
+            scope, model, menu_record,
+            ViewState.shown_columns (model, MAX_COLUMNS), menu_text
+        );
+        if (text != null) {
+            get_clipboard ().set_text (text);
         }
     }
 
-    // A column can have a million cells, so collect them in a thread.
+    // A column can have a million cells, so collect them in a thread. A
+    // newer copy makes the result of an older one obsolete.
     private async void copy_column (RowModel model, int column, bool header) {
+        var ticket = copy_generation.next ();
         var view = model.view;
         string[]? values = null;
         SourceFunc callback = copy_column.callback;
@@ -254,9 +251,11 @@ public class Reto.Window : Adw.ApplicationWindow {
             Idle.add ((owned) callback);
         });
         yield;
-        get_clipboard ().set_text (
-            CopyText.column (model, column, values, header)
-        );
+        if (copy_generation.is_current (ticket)) {
+            get_clipboard ().set_text (
+                CopyText.column (model, column, values, header)
+            );
+        }
     }
 
     // The state of the action follows what is shown, so it changes only
@@ -377,6 +376,11 @@ public class Reto.Window : Adw.ApplicationWindow {
 
     private void show_model (RowModel model) {
         view_generation.invalidate ();
+        copy_generation.invalidate ();
+        cell_popover.popdown ();
+        menu_record = null;
+        menu_selection = null;
+        ((SimpleAction) lookup_action ("copy-selection")).set_enabled (false);
         sort_spinner.visible = false;
         if (this.model != null) {
             this.model.disconnect (status_handler);

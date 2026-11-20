@@ -85,6 +85,34 @@ void test_column_beyond_the_record () {
     assert_text (Reto.CopyText.column (model, 1, values, false), "");
 }
 
+void test_scopes () {
+    var model = make_model ("k,v\na,1\n");
+    var record = model.get_record (0);
+    var cell = Reto.CopyText.Scope.CELL;
+    assert_text (
+        Reto.CopyText.for_scope (cell, model, record, 2, "x"), "x"
+    );
+    assert_text (
+        Reto.CopyText.for_scope (
+            Reto.CopyText.Scope.ROW, model, record, 2, "x"
+        ), "a\t1"
+    );
+    assert_text (
+        Reto.CopyText.for_scope (
+            Reto.CopyText.Scope.ROW_HEADER, model, record, 2, "x"
+        ), "k\tv\na\t1"
+    );
+    assert_null (Reto.CopyText.for_scope (
+        Reto.CopyText.Scope.COLUMN, model, record, 2, "x"
+    ));
+    assert_null (Reto.CopyText.for_scope ("nonsense", model, record, 2, "x"));
+    assert_true (Reto.CopyText.is_column (Reto.CopyText.Scope.COLUMN));
+    assert_true (Reto.CopyText.is_column (Reto.CopyText.Scope.COLUMN_HEADER));
+    assert_false (Reto.CopyText.is_column (Reto.CopyText.Scope.ROW));
+    assert_true (Reto.CopyText.has_header (Reto.CopyText.Scope.COLUMN_HEADER));
+    assert_false (Reto.CopyText.has_header (Reto.CopyText.Scope.COLUMN));
+}
+
 void main (string[] args) {
     Test.init (ref args);
     Test.add_func ("/copy-text/quote", test_quote);
@@ -98,5 +126,6 @@ void main (string[] args) {
     Test.add_func ("/copy-text/column-view", test_column_follows_the_view);
     Test.add_func ("/copy-text/column-empty", test_column_without_rows);
     Test.add_func ("/copy-text/column-short", test_column_beyond_the_record);
+    Test.add_func ("/copy-text/scopes", test_scopes);
     Test.run ();
 }

@@ -68,4 +68,38 @@ namespace Reto.CopyText {
         var title = quote (model.get_column_title (column));
         return values.length > 0 ? title + "\n" + text : title;
     }
+
+    /**
+     * Whether a scope copies a column, which has to be collected first.
+     */
+    public bool is_column (string scope) {
+        return scope == Scope.COLUMN || scope == Scope.COLUMN_HEADER;
+    }
+
+    /**
+     * The text of a scope other than a column: ''cell_text'' for a cell, or
+     * the row of ''record''. Null for a column or an unknown scope.
+     */
+    public string? for_scope (
+        string scope, RowModel model, Record record, int n_columns,
+        string cell_text
+    ) {
+        switch (scope) {
+        case Scope.CELL:
+            return cell_text;
+        case Scope.ROW:
+            return row (model, record, n_columns, false);
+        case Scope.ROW_HEADER:
+            return row (model, record, n_columns, true);
+        default:
+            return null;
+        }
+    }
+
+    /**
+     * Whether a scope includes the titles of the columns.
+     */
+    public bool has_header (string scope) {
+        return scope == Scope.COLUMN_HEADER || scope == Scope.ROW_HEADER;
+    }
 }

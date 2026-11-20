@@ -443,6 +443,105 @@ void test_filter_menu_filters_rows () {
     window.destroy ();
 }
 
+Reto.Cell? find_cell (Gtk.Widget root, int row, int column) {
+    if (root is Reto.Cell) {
+        var cell = (Reto.Cell) root;
+        if (cell.row == row && cell.column == column) {
+            return cell;
+        }
+    }
+    var child = root.get_first_child ();
+    while (child != null) {
+        var found = find_cell (child, row, column);
+        if (found != null) {
+            return found;
+        }
+        child = child.get_next_sibling ();
+    }
+    return null;
+}
+
+// Picks the cell the context menu copies, as a click on it does. The popup
+// itself is not shown: a popover cannot be mapped on the private display.
+void open_cell_menu (Reto.Window window, int row, int column) {
+    assert_true (wait_for (() => find_cell (window, row, column) != null));
+    assert_true (window.set_menu_cell (find_cell (window, row, column)));
+}
+
+string? clipboard_text (Gtk.Widget widget) {
+    string? text = null;
+    bool done = false;
+    var clipboard = widget.get_clipboard ();
+    clipboard.read_text_async.begin (null, (obj, res) => {
+        try {
+            text = clipboard.read_text_async.end (res);
+        } catch (Error e) {
+            Test.message ("%s", e.message);
+        }
+        done = true;
+    });
+    assert_true (wait_for (() => done));
+    return text;
+}
+
+void assert_copied (Reto.Window window, string target, string expected) {
+    window.activate_action ("copy", new Variant.string (target));
+    string? text = null;
+    // Copying a column is asynchronous.
+    assert_true (wait_for (() => {
+        text = clipboard_text (window);
+        return text == expected;
+    }));
+}
+
+void test_copy_without_menu_does_nothing () {
+    var window = open_csv ("k,v\na,1\n");
+    assert_false (window_action (window, "copy-selection").enabled);
+    window.activate_action ("copy", new Variant.string ("row"));
+    window.destroy ();
+}
+
+void test_cell_menu_copies () {
+    var window = open_csv ("k,v\na,1\nb,2\nc,3\n");
+    open_cell_menu (window, 1, 1);
+    assert_false (window_action (window, "copy-selection").enabled);
+
+    assert_copied (window, "cell", "2");
+    assert_copied (window, "row", "b\t2");
+    assert_copied (window, "row-header", "k\tv\nb\t2");
+    assert_copied (window, "column", "1\n2\n3");
+    assert_copied (window, "column-header", "v\n1\n2\n3");
+    window.destroy ();
+}
+
+void test_cell_menu_copies_the_shown_rows () {
+    var window = open_csv ("k,v\na,1\nb,2\nc,3\n");
+    var table = widget<Gtk.ColumnView> (window, "table");
+    var status = widget<Gtk.Label> (window, "status_label");
+    table.sort_by_column (
+        (Gtk.ColumnViewColumn) table.columns.get_item (0),
+        Gtk.SortType.DESCENDING
+    );
+    assert_true (wait_for (() => window_action (window, "reset").enabled));
+    // The first row shown is now the last one of the file.
+    assert_true (wait_for (() => {
+        open_cell_menu (window, 0, 1);
+        window.activate_action ("copy", new Variant.string ("cell"));
+        return clipboard_text (window) == "3";
+    }));
+    assert_copied (window, "row", "c\t3");
+    assert_copied (window, "column", "3\n2\n1");
+
+    assert_true (wait_for (() => window.lookup_action ("filter-0") != null));
+    window.activate_action (
+        "filter-0", new Variant.string (Reto.ViewState.encode_filter ("a"))
+    );
+    assert_true (wait_for (() => status.label == "1 of 3 rows  ·  k: a"));
+    open_cell_menu (window, 0, 0);
+    assert_copied (window, "column-header", "k\na");
+    window.destroy ();
+}
+
 void main (string[] args) {
     // The windows would open in the desktop of whoever runs the binary by
     // hand, so run only on the private display that Meson sets up.
@@ -471,6 +570,10 @@ void main (string[] args) {
     Test.add_func ("/window/search-close", test_closing_search_resets_it);
     Test.add_func ("/window/sort-reset", test_sort_enables_reset);
     Test.add_func ("/window/filter", test_filter_menu_filters_rows);
+    Test.add_func ("/window/copy-no-menu", test_copy_without_menu_does_nothing);
+    Test.add_func ("/window/copy", test_cell_menu_copies);
+    Test.add_func ("/window/copy-shown-rows",
+        test_cell_menu_copies_the_shown_rows);
     Test.add_func ("/window/encoding-default",
         test_encoding_defaults_to_automatic);
     Test.add_func ("/window/encoding-detected", test_encoding_is_detected);

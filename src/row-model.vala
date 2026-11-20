@@ -89,6 +89,19 @@ public class Reto.RowModel : Object, ListModel {
     }
 
     /**
+     * The cells of one column in the rows of a view, in the order they are
+     * shown. Does not touch the model, so it can run in a thread.
+     */
+    public string[] column_values (RowView view, int column) {
+        uint n = rows_in (view);
+        var values = new string[n];
+        for (uint i = 0; i < n; i++) {
+            values[i] = cell_at (record_at (view, i), column);
+        }
+        return values;
+    }
+
+    /**
      * Finds the rows of a view with a cell, in one of the first
      * ''max_columns'' columns, that contains ''query'' in any letter case.
      * If ''anchor'' is one of them, its place among the matches is

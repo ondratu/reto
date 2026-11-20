@@ -1,11 +1,13 @@
 /**
- * A table cell. It marks the text found by a search.
+ * A table cell. It marks the text found by a search, and its text can be
+ * selected and copied.
  */
 public class Reto.Cell : Gtk.Box {
     private Gtk.Label label = new Gtk.Label (null) {
         xalign = 0f,
         hexpand = true,
         ellipsize = Pango.EllipsizeMode.END,
+        selectable = true,
     };
 
     public int column { get; construct; }
@@ -14,7 +16,11 @@ public class Reto.Cell : Gtk.Box {
 
     public string text {
         get { return label.label; }
-        set { label.label = value; }
+        set {
+            label.label = value;
+            // The cell is reused for other rows, do not keep a selection.
+            label.select_region (0, 0);
+        }
     }
 
     public Cell (int column) {

@@ -7,6 +7,8 @@ public class Reto.Window : Adw.ApplicationWindow {
         { "find", on_find },
         { "find-next", on_find_next },
         { "find-previous", on_find_previous },
+        { "copy", on_copy, "s" },
+        { "copy-selection", on_copy_selection },
     };
 
     private const int MAX_COLUMNS = 500;
@@ -27,6 +29,12 @@ public class Reto.Window : Adw.ApplicationWindow {
     private SearchState search = new SearchState ();
     private GenericArray<Cell> cells = new GenericArray<Cell> ();
     private File? file = null;
+    // What the context menu of the table was opened on.
+    private Gtk.PopoverMenu cell_popover;
+    private Record? menu_record = null;
+    private int menu_column = -1;
+    private string menu_text = "";
+    private string? menu_selection = null;
 
     [GtkChild]
     private unowned Gtk.Stack stack;
@@ -54,6 +62,7 @@ public class Reto.Window : Adw.ApplicationWindow {
     construct {
         add_action_entries (ACTION_ENTRIES, this);
         build_encoding_menu ();
+        build_cell_menu ();
 
         var drop_target = new Gtk.DropTarget (
             typeof (File), Gdk.DragAction.COPY
@@ -97,6 +106,13 @@ public class Reto.Window : Adw.ApplicationWindow {
         show_search (false);
     }
 
+    public override void dispose () {
+        if (cell_popover != null) {
+            cell_popover.unparent ();
+        }
+        base.dispose ();
+    }
+
     public void open_file (File file) {
         // The encoding was chosen for the previous file.
         load.begin (file, "auto");
@@ -125,6 +141,122 @@ public class Reto.Window : Adw.ApplicationWindow {
         }
         encoding_menu.append_section (null, groups);
         encoding_button.menu_model = encoding_menu;
+    }
+
+    private void build_cell_menu () {
+        var menu = new Menu ();
+        var selection = new Menu ();
+        selection.append ("Copy _Selected Text", "win.copy-selection");
+        menu.append_section (null, selection);
+
+        var cell = new Menu ();
+        cell.append ("Copy C_ell", "win.copy::" + CopyText.Scope.CELL);
+        menu.append_section (null, cell);
+
+        var row = new Menu ();
+        row.append ("Copy _Row", "win.copy::" + CopyText.Scope.ROW);
+        row.append (
+            "Copy Row with _Header", "win.copy::" + CopyText.Scope.ROW_HEADER
+        );
+        menu.append_section (null, row);
+
+        var column = new Menu ();
+        column.append ("Copy C_olumn", "win.copy::" + CopyText.Scope.COLUMN);
+        column.append (
+            "Copy Column with H_eader",
+            "win.copy::" + CopyText.Scope.COLUMN_HEADER
+        );
+        menu.append_section (null, column);
+
+        cell_popover = new Gtk.PopoverMenu.from_model (menu) {
+            has_arrow = false,
+            halign = Gtk.Align.START,
+        };
+        cell_popover.set_parent (table);
+        ((SimpleAction) lookup_action ("copy-selection")).set_enabled (false);
+    }
+
+    /**
+     * Makes the cell the one the copy actions are about. The context menu
+     * does it when it opens, so that it copies what it was opened on even if
+     * the table changes while it is open. Returns false for a cell without
+     * a row.
+     */
+    public bool set_menu_cell (Cell cell) {
+        var record = model != null ? model.get_record (cell.row) : null;
+        if (record == null) {
+            return false;
+        }
+        menu_record = record;
+        menu_column = cell.column;
+        menu_text = cell.text;
+        menu_selection = cell.selected_text;
+        ((SimpleAction) lookup_action ("copy-selection")).set_enabled (
+            menu_selection != null
+        );
+        return true;
+    }
+
+    private void on_cell_menu (Cell cell, double x, double y) {
+        var origin = Graphene.Point () { x = (float) x, y = (float) y };
+        Graphene.Point point;
+        if (!set_menu_cell (cell)) {
+            return;
+        }
+        if (!cell.compute_point (table, origin, out point)) {
+            return;
+        }
+        cell_popover.set_pointing_to ({ (int) point.x, (int) point.y, 1, 1 });
+        // The row under the pointer is the one a row copy is about.
+        table.scroll_to (cell.row, null, Gtk.ListScrollFlags.SELECT, null);
+        cell_popover.popup ();
+    }
+
+    private void on_copy_selection () {
+        if (menu_selection != null) {
+            get_clipboard ().set_text (menu_selection);
+        }
+    }
+
+    private void on_copy (SimpleAction action, Variant? target) {
+        if (model == null || menu_record == null) {
+            return;
+        }
+        var scope = target.get_string ();
+        switch (scope) {
+        case CopyText.Scope.CELL:
+            get_clipboard ().set_text (menu_text);
+            break;
+        case CopyText.Scope.ROW:
+        case CopyText.Scope.ROW_HEADER:
+            get_clipboard ().set_text (CopyText.row (
+                model, menu_record,
+                ViewState.shown_columns (model, MAX_COLUMNS),
+                scope == CopyText.Scope.ROW_HEADER
+            ));
+            break;
+        case CopyText.Scope.COLUMN:
+        case CopyText.Scope.COLUMN_HEADER:
+            copy_column.begin (
+                model, menu_column, scope == CopyText.Scope.COLUMN_HEADER
+            );
+            break;
+        }
+    }
+
+    // A column can have a million cells, so collect them in a thread.
+    private async void copy_column (RowModel model, int column, bool header) {
+        var view = model.view;
+        string[]? values = null;
+        SourceFunc callback = copy_column.callback;
+        new Thread<void> ("csv-copy", () => {
+            values = model.column_values (view, column);
+            Idle.add ((owned) callback);
+        });
+        yield;
+        get_clipboard ().set_text (
+            CopyText.column (model, column, values, header)
+        );
     }
 
     // The state of the action follows what is shown, so it changes only
@@ -549,6 +681,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         var factory = new Gtk.SignalListItemFactory ();
         factory.setup.connect ((item) => {
             var cell = new Cell (index);
+            cell.context_menu.connect ((x, y) => on_cell_menu (cell, x, y));
             cells.add (cell);
             ((Gtk.ListItem) item).child = cell;
         });

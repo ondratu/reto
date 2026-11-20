@@ -6,6 +6,18 @@
  */
 namespace Reto.CopyText {
     /**
+     * What the context menu of the table can copy. The values are the targets
+     * of the copy action.
+     */
+    namespace Scope {
+        public const string CELL = "cell";
+        public const string ROW = "row";
+        public const string ROW_HEADER = "row-header";
+        public const string COLUMN = "column";
+        public const string COLUMN_HEADER = "column-header";
+    }
+
+    /**
      * One value of tab separated text.
      */
     public string quote (string value) {

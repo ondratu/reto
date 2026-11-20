@@ -14,6 +14,7 @@ All changes of Reto that are visible to users. The newest release is on top.
   use.
 - A file that cannot be read in the detected encoding is no longer shown with
   replaced characters: Reto reports it, and you can choose another encoding.
+- Installers for Windows (x86_64 and aarch64).
 - Examples in other encodings in `data/examples/`.
 - The text of a cell can be selected with the mouse and copied (Ctrl+C).
 - A context menu on a cell (secondary click or long press) copies the cell,

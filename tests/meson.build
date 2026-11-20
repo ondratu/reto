@@ -14,8 +14,8 @@ elif host_machine.system() == 'netbsd'
 endif
 
 foreach name : [
-  'csv-parser', 'encoding', 'row-model', 'search', 'search-state',
-  'view-state',
+  'copy-text', 'csv-parser', 'encoding', 'row-model', 'search',
+  'search-state', 'view-state',
 ]
   test_exe = executable('test-' + name,
     ['test-@0@.vala'.format(name), core_sources],

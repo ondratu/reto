@@ -7,12 +7,13 @@ of rows and columns, woven from plain text. Reto lets you look at it as a whole,
 pull on any thread (sort, filter, search) and never get tangled up.
 
 Reto opens a CSV file, parses its header and shows the data in a table that
-you can sort, filter and search. It is a viewer: editing is not planned. The
-aim is to be as standard a GNOME application as possible.
+you can sort, filter, search and copy from. It is a viewer: editing is not
+planned. The aim is to be as standard a GNOME application as possible.
 
-> **Status:** the first release, 0.1.0. It is a working viewer, but many
-> things that people expect from a GNOME application are still planned, see
-> below. The changes are listed in the [ChangeLog](ChangeLog.md).
+> **Status:** early releases (0.1.x). Reto is a working viewer, but many
+> things that people expect from a data viewer and from a GNOME application
+> are still planned, see below. What changed is listed in the
+> [ChangeLog](ChangeLog.md).
 
 ## Features
 
@@ -27,9 +28,13 @@ Done:
 - [x] Sort the data by a column (numeric columns are sorted as numbers)
 - [x] Filter by an enum-like column (a column with few distinct values)
 - [x] Search in the data (jump between matches)
+- [x] Select the text of a cell and copy it
+- [x] Context menu on a cell: copy the cell, the row or the column, the row
+      and the column with or without the header (as tab separated text)
 - [x] Keyboard shortcuts dialog
 - [x] AppStream metainfo (screenshot, branding, keywords), validated in CI
 - [x] Flatpak manifest, bundles and a signed Flatpak repository
+- [x] Windows installers (x86_64 and aarch64)
 
 Planned, grouped by importance:
 
@@ -41,8 +46,8 @@ Planned, grouped by importance:
 
 ### Should: what people expect from a data viewer
 
-- [ ] Copy a cell, a row or several rows (Ctrl+C as TSV), multiple selection
-- [ ] Context menu on a cell (copy the cell, the row, filter by this value)
+- [ ] Select several rows and copy them (Ctrl+C as tab separated text)
+- [ ] Filter by the value of a cell from its context menu
 - [ ] First row as a header on or off
 - [ ] Choose the delimiter and the quote character by hand
 - [ ] Resizable columns, sensible initial widths, double click to fit, the full
@@ -87,10 +92,10 @@ Planned, grouped by importance:
 
 | Platform | Status                     |
 | -------- | -------------------------- |
-| Linux    | Primary target             |
-| Windows  | Possible in the future     |
-| NetBSD   | Builds from source         |
-| macOS    | Maybe, if it turns out to work |
+| Linux    | Primary target: Flatpak, builds from source |
+| Windows  | Installer, built and tested in CI           |
+| NetBSD   | Builds from source, checked in CI           |
+| macOS    | Maybe, if it turns out to work              |
 
 ## Installation
 
@@ -123,6 +128,11 @@ tools/build-flatpak.sh            # host architecture, output in dist/
 The *Flatpak* GitHub workflow builds both bundles. It is run manually, or by
 publishing a release, which also attaches the bundles to the release and
 updates the repository.
+
+### Windows
+
+Download the installer for your architecture (`x86_64` or `aarch64`) from the
+[releases](https://github.com/ondratu/reto/releases) and run it.
 
 ### Debian / Ubuntu
 

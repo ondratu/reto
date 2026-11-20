@@ -72,7 +72,8 @@ meson test -C build
 
 The logic that does not need GTK has unit tests in `tests/`: the CSV parsing
 and the data model (`csv-parser.vala`, `row-model.vala`, `row.vala`,
-`search.vala`) and the state of the view (`search-state.vala`,
+`search.vala`), the text that copying puts to the clipboard
+(`copy-text.vala`) and the state of the view (`search-state.vala`,
 `view-state.vala`, `generation.vala`). They are listed as `core_sources` in
 `src/meson.build`, which are built into the tests without GTK, so keep GTK out
 of them. New logic needs tests too: add a `tests/test-<name>.vala` and list it

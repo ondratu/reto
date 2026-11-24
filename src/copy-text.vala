@@ -7,7 +7,7 @@
 namespace Reto.CopyText {
     /**
      * What the context menu of the table can copy. The values are the targets
-     * of the copy action.
+     * of the copy action. The rows are the selected ones.
      */
     namespace Scope {
         public const string CELL = "cell";
@@ -29,25 +29,30 @@ namespace Reto.CopyText {
     }
 
     /**
-     * The first ''n_columns'' cells of a record as a line, followed by the
-     * column titles on a line of their own above it if ''with_header''.
+     * The first ''n_columns'' cells of each record, a record per line,
+     * preceded by the column titles if ''with_header''.
      */
-    public string row (
-        RowModel model, Record record, int n_columns, bool with_header
+    public string rows (
+        RowModel model, Record[] records, int n_columns, bool with_header
     ) {
-        var cells = new string[n_columns];
-        for (int i = 0; i < n_columns; i++) {
-            cells[i] = quote (i < record.cells.length ? record.cells[i] : "");
+        var lines = new string[0];
+        if (with_header) {
+            var titles = new string[n_columns];
+            for (int i = 0; i < n_columns; i++) {
+                titles[i] = quote (model.get_column_title (i));
+            }
+            lines += string.joinv ("\t", titles);
         }
-        var line = string.joinv ("\t", cells);
-        if (!with_header) {
-            return line;
+        foreach (var record in records) {
+            var cells = new string[n_columns];
+            for (int i = 0; i < n_columns; i++) {
+                cells[i] = quote (
+                    i < record.cells.length ? record.cells[i] : ""
+                );
+            }
+            lines += string.joinv ("\t", cells);
         }
-        var titles = new string[n_columns];
-        for (int i = 0; i < n_columns; i++) {
-            titles[i] = quote (model.get_column_title (i));
-        }
-        return string.joinv ("\t", titles) + "\n" + line;
+        return string.joinv ("\n", lines);
     }
 
     /**
@@ -78,19 +83,19 @@ namespace Reto.CopyText {
 
     /**
      * The text of a scope other than a column: ''cell_text'' for a cell, or
-     * the row of ''record''. Null for a column or an unknown scope.
+     * the ''records'' for the rows. Null for a column or an unknown scope.
      */
     public string? for_scope (
-        string scope, RowModel model, Record record, int n_columns,
+        string scope, RowModel model, Record[] records, int n_columns,
         string cell_text
     ) {
         switch (scope) {
         case Scope.CELL:
             return cell_text;
         case Scope.ROW:
-            return row (model, record, n_columns, false);
+            return rows (model, records, n_columns, false);
         case Scope.ROW_HEADER:
-            return row (model, record, n_columns, true);
+            return rows (model, records, n_columns, true);
         default:
             return null;
         }

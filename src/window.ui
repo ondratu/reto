@@ -137,6 +137,7 @@
                                 </style>
                                 <property name="show-column-separators">true</property>
                                 <property name="show-row-separators">true</property>
+                                <property name="enable-rubberband">true</property>
                               </object>
                             </property>
                           </object>

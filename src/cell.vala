@@ -1,13 +1,14 @@
 /**
- * A table cell. It marks the text found by a search, and its text can be
- * selected and copied. A secondary click asks for a context menu.
+ * A table cell. It marks the text found by a search and asks for a context
+ * menu on a secondary click or a long press. The cell fills the whole area
+ * of the table cell, see style.css, so that a click anywhere in it does the
+ * same. See docs/selection-and-copy.md.
  */
 public class Reto.Cell : Gtk.Box {
     private Gtk.Label label = new Gtk.Label (null) {
         xalign = 0f,
         hexpand = true,
         ellipsize = Pango.EllipsizeMode.END,
-        selectable = true,
     };
 
     public int column { get; construct; }
@@ -16,28 +17,7 @@ public class Reto.Cell : Gtk.Box {
 
     public string text {
         get { return label.label; }
-        set {
-            label.label = value;
-            // The cell is reused for other rows, do not keep a selection.
-            label.select_region (0, 0);
-        }
-    }
-
-    /**
-     * The text selected in the cell, or null if there is none.
-     */
-    public string? selected_text {
-        owned get {
-            int start, end;
-            if (!label.get_selection_bounds (out start, out end)) {
-                return null;
-            }
-            var text = label.get_text ();
-            return text.substring (
-                text.index_of_nth_char (start),
-                text.index_of_nth_char (end) - text.index_of_nth_char (start)
-            );
-        }
+        set { label.label = value; }
     }
 
     /**
@@ -53,8 +33,6 @@ public class Reto.Cell : Gtk.Box {
     construct {
         append (label);
 
-        // The label would show a menu of its own. Capture the press before
-        // it gets there.
         var secondary = new Gtk.GestureClick () {
             button = Gdk.BUTTON_SECONDARY,
             propagation_phase = Gtk.PropagationPhase.CAPTURE,

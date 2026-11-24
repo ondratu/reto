@@ -10,3 +10,12 @@ columnview.data-table box.current-match {
     background-color: @warning_bg_color;
     color: @warning_fg_color;
 }
+
+/* The padding is in Reto.Cell, see docs/selection-and-copy.md */
+columnview.data-table > listview > row > cell {
+    padding: 0;
+}
+
+columnview.data-table > listview > row > cell > box {
+    padding: 2px 6px;
+}

@@ -496,7 +496,6 @@ void assert_copied (Reto.Window window, string target, string expected) {
 
 void test_copy_without_menu_does_nothing () {
     var window = open_csv ("k,v\na,1\n");
-    assert_false (window_action (window, "copy-selection").enabled);
     window.activate_action ("copy", new Variant.string ("row"));
     window.destroy ();
 }
@@ -504,7 +503,6 @@ void test_copy_without_menu_does_nothing () {
 void test_cell_menu_copies () {
     var window = open_csv ("k,v\na,1\nb,2\nc,3\n");
     open_cell_menu (window, 1, 1);
-    assert_false (window_action (window, "copy-selection").enabled);
 
     assert_copied (window, "cell", "2");
     assert_copied (window, "row", "b\t2");
@@ -542,6 +540,65 @@ void test_cell_menu_copies_the_shown_rows () {
     window.destroy ();
 }
 
+Gtk.MultiSelection selection_of (Reto.Window window) {
+    return (Gtk.MultiSelection) widget<Gtk.ColumnView> (window, "table").model;
+}
+
+void test_menu_on_an_unselected_row_selects_it () {
+    var window = open_csv ("k,v\na,1\nb,2\nc,3\n");
+    var selection = selection_of (window);
+    selection.select_range (0, 2, true);
+    open_cell_menu (window, 2, 0);
+    assert_false (selection.is_selected (0));
+    assert_false (selection.is_selected (1));
+    assert_true (selection.is_selected (2));
+    assert_copied (window, "row", "c\t3");
+    window.destroy ();
+}
+
+void test_menu_on_a_selected_row_copies_all_selected () {
+    var window = open_csv ("k,v\na,1\nb,2\nc,3\n");
+    var selection = selection_of (window);
+    selection.select_range (0, 2, true);
+    open_cell_menu (window, 1, 1);
+    assert_true (selection.is_selected (0));
+    assert_true (selection.is_selected (1));
+    assert_copied (window, "row", "a\t1\nb\t2");
+    assert_copied (window, "row-header", "k\tv\na\t1\nb\t2");
+    // A cell and a column are still about the cell the menu is on.
+    assert_copied (window, "cell", "2");
+    assert_copied (window, "column", "1\n2\n3");
+    window.destroy ();
+}
+
+void test_control_c_copies_the_selected_rows () {
+    var window = open_csv ("k,v\na,1\nb,2\nc,3\n");
+    var table = widget<Gtk.ColumnView> (window, "table");
+    selection_of (window).select_range (1, 2, true);
+    // The shortcut is a controller of the table, which the test cannot
+    // press a key for, so run it as GTK does.
+    var shortcuts = table.observe_controllers ();
+    bool found = false;
+    for (uint i = 0; i < shortcuts.get_n_items (); i++) {
+        var controller = shortcuts.get_item (i) as Gtk.ShortcutController;
+        if (controller != null) {
+            found = true;
+            for (uint j = 0; j < controller.get_n_items (); j++) {
+                var shortcut = (Gtk.Shortcut) controller.get_item (j);
+                shortcut.action.activate (Gtk.ShortcutActionFlags.EXCLUSIVE,
+                    table, null);
+            }
+        }
+    }
+    assert_true (found);
+    string? text = null;
+    assert_true (wait_for (() => {
+        text = clipboard_text (window);
+        return text == "b\t2\nc\t3";
+    }));
+    window.destroy ();
+}
+
 void main (string[] args) {
     // The windows would open in the desktop of whoever runs the binary by
     // hand, so run only on the private display that Meson sets up.
@@ -574,6 +631,12 @@ void main (string[] args) {
     Test.add_func ("/window/copy", test_cell_menu_copies);
     Test.add_func ("/window/copy-shown-rows",
         test_cell_menu_copies_the_shown_rows);
+    Test.add_func ("/window/copy-select-row",
+        test_menu_on_an_unselected_row_selects_it);
+    Test.add_func ("/window/copy-selected-rows",
+        test_menu_on_a_selected_row_copies_all_selected);
+    Test.add_func ("/window/copy-ctrl-c",
+        test_control_c_copies_the_selected_rows);
     Test.add_func ("/window/encoding-default",
         test_encoding_defaults_to_automatic);
     Test.add_func ("/window/encoding-detected", test_encoding_is_detected);

@@ -8,7 +8,6 @@ public class Reto.Window : Adw.ApplicationWindow {
         { "find-next", on_find_next },
         { "find-previous", on_find_previous },
         { "copy", on_copy, "s" },
-        { "copy-selection", on_copy_selection },
     };
 
     private const int MAX_COLUMNS = 500;
@@ -32,10 +31,9 @@ public class Reto.Window : Adw.ApplicationWindow {
     // What the context menu of the table was opened on.
     private Gtk.PopoverMenu cell_popover;
     private Generation copy_generation = new Generation ();
-    private Record? menu_record = null;
+    private Record[] menu_records = {};
     private int menu_column = -1;
     private string menu_text = "";
-    private string? menu_selection = null;
 
     [GtkChild]
     private unowned Gtk.Stack stack;
@@ -144,22 +142,42 @@ public class Reto.Window : Adw.ApplicationWindow {
         encoding_button.menu_model = encoding_menu;
     }
 
+    // The popover is made once, the menu is built when it opens: it says
+    // "Rows" when more than one row is selected.
     private void build_cell_menu () {
-        var menu = new Menu ();
-        var selection = new Menu ();
-        selection.append ("Copy _Selected Text", "win.copy-selection");
-        menu.append_section (null, selection);
+        cell_popover = new Gtk.PopoverMenu.from_model (null) {
+            has_arrow = false,
+            halign = Gtk.Align.START,
+        };
+        cell_popover.set_parent (table);
+        // Copy the selected rows with Ctrl+C, when the focus is in the table.
+        var keys = new Gtk.ShortcutController ();
+        keys.add_shortcut (new Gtk.Shortcut (
+            Gtk.ShortcutTrigger.parse_string ("<Control>c"),
+            new Gtk.CallbackAction ((widget, args) => {
+                copy_rows (selected_records (), false);
+                return true;
+            })
+        ));
+        table.add_controller (keys);
+    }
 
+    private MenuModel create_cell_menu (uint n_rows) {
+        var menu = new Menu ();
         var cell = new Menu ();
         cell.append ("Copy C_ell", "win.copy::" + CopyText.Scope.CELL);
         menu.append_section (null, cell);
 
-        var row = new Menu ();
-        row.append ("Copy _Row", "win.copy::" + CopyText.Scope.ROW);
-        row.append (
-            "Copy Row with _Header", "win.copy::" + CopyText.Scope.ROW_HEADER
+        var rows = new Menu ();
+        var noun = n_rows > 1 ? "Rows" : "Row";
+        rows.append (
+            "Copy _%s".printf (noun), "win.copy::" + CopyText.Scope.ROW
         );
-        menu.append_section (null, row);
+        rows.append (
+            "Copy %s with _Header".printf (noun),
+            "win.copy::" + CopyText.Scope.ROW_HEADER
+        );
+        menu.append_section (null, rows);
 
         var column = new Menu ();
         column.append ("Copy C_olumn", "win.copy::" + CopyText.Scope.COLUMN);
@@ -168,33 +186,52 @@ public class Reto.Window : Adw.ApplicationWindow {
             "win.copy::" + CopyText.Scope.COLUMN_HEADER
         );
         menu.append_section (null, column);
+        return menu;
+    }
 
-        cell_popover = new Gtk.PopoverMenu.from_model (menu) {
-            has_arrow = false,
-            halign = Gtk.Align.START,
-        };
-        cell_popover.set_parent (table);
-        ((SimpleAction) lookup_action ("copy-selection")).set_enabled (false);
+    // The records of the selected rows, in the order they are shown.
+    private Record[] selected_records () {
+        Record[] records = {};
+        var selection = table.model as Gtk.MultiSelection;
+        if (model == null || selection == null) {
+            return records;
+        }
+        var bits = selection.get_selection ();
+        var iter = Gtk.BitsetIter ();
+        uint position;
+        if (iter.init_first (bits, out position)) {
+            do {
+                var record = model.get_record (position);
+                if (record != null) {
+                    records += record;
+                }
+            } while (iter.next (out position));
+        }
+        return records;
     }
 
     /**
-     * Makes the cell the one the copy actions are about. The context menu
-     * does it when it opens, so that it copies what it was opened on even if
-     * the table changes while it is open. Returns false for a cell without
-     * a row.
+     * Makes the cell the one the copy actions are about, as a secondary
+     * click on it does. The rows are the selected ones; if the cell is not
+     * in a selected row, only that row is selected first. Returns false for
+     * a cell without a row.
      */
     public bool set_menu_cell (Cell cell) {
-        var record = model != null ? model.get_record (cell.row) : null;
-        if (record == null) {
+        var selection = table.model as Gtk.MultiSelection;
+        if (model == null || selection == null || model.get_record (
+            cell.row
+        ) == null) {
             return false;
         }
-        menu_record = record;
+        if (!selection.is_selected (cell.row)) {
+            selection.select_item (cell.row, true);
+        }
+        // The menu copies what it was opened on even if the table changes
+        // while it is open.
+        menu_records = selected_records ();
         menu_column = cell.column;
         menu_text = cell.text;
-        menu_selection = cell.selected_text;
-        ((SimpleAction) lookup_action ("copy-selection")).set_enabled (
-            menu_selection != null
-        );
+        cell_popover.menu_model = create_cell_menu (menu_records.length);
         return true;
     }
 
@@ -208,53 +245,59 @@ public class Reto.Window : Adw.ApplicationWindow {
             return;
         }
         cell_popover.set_pointing_to ({ (int) point.x, (int) point.y, 1, 1 });
-        // The row under the pointer is the one a row copy is about. Do not
-        // scroll, the popover would point to where the cell was.
-        ((Gtk.SingleSelection) table.model).selected = cell.row;
         cell_popover.popup ();
     }
 
-    private void on_copy_selection () {
-        if (menu_selection != null) {
-            get_clipboard ().set_text (menu_selection);
-        }
-    }
-
     private void on_copy (SimpleAction action, Variant? target) {
-        if (model == null || menu_record == null) {
+        if (model == null || menu_records.length == 0) {
             return;
         }
         var scope = target.get_string ();
         if (CopyText.is_column (scope)) {
-            copy_column.begin (model, menu_column, CopyText.has_header (scope));
+            var model = this.model;
+            var column = menu_column;
+            var view = model.view;
+            var header = CopyText.has_header (scope);
+            copy_text.begin (() => CopyText.column (
+                model, column, model.column_values (view, column), header
+            ));
+            return;
+        }
+        if (scope != CopyText.Scope.CELL) {
+            copy_rows (menu_records, CopyText.has_header (scope));
             return;
         }
         copy_generation.invalidate ();
-        var text = CopyText.for_scope (
-            scope, model, menu_record,
-            ViewState.shown_columns (model, MAX_COLUMNS), menu_text
-        );
-        if (text != null) {
-            get_clipboard ().set_text (text);
-        }
+        get_clipboard ().set_text (menu_text);
     }
 
-    // A column can have a million cells, so collect them in a thread. A
-    // newer copy makes the result of an older one obsolete.
-    private async void copy_column (RowModel model, int column, bool header) {
+    private void copy_rows (owned Record[] records, bool header) {
+        if (model == null || records.length == 0) {
+            return;
+        }
+        var model = this.model;
+        var n_columns = ViewState.shown_columns (model, MAX_COLUMNS);
+        copy_text.begin (
+            () => CopyText.rows (model, records, n_columns, header)
+        );
+    }
+
+    private delegate string TextBuilder ();
+
+    // Many rows or a column of a million cells take time to put together, so
+    // do it in a thread. A newer copy makes the result of an older one
+    // obsolete.
+    private async void copy_text (owned TextBuilder build) {
         var ticket = copy_generation.next ();
-        var view = model.view;
-        string[]? values = null;
-        SourceFunc callback = copy_column.callback;
+        string text = "";
+        SourceFunc callback = copy_text.callback;
         new Thread<void> ("csv-copy", () => {
-            values = model.column_values (view, column);
+            text = build ();
             Idle.add ((owned) callback);
         });
         yield;
         if (copy_generation.is_current (ticket)) {
-            get_clipboard ().set_text (
-                CopyText.column (model, column, values, header)
-            );
+            get_clipboard ().set_text (text);
         }
     }
 
@@ -378,9 +421,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         view_generation.invalidate ();
         copy_generation.invalidate ();
         cell_popover.popdown ();
-        menu_record = null;
-        menu_selection = null;
-        ((SimpleAction) lookup_action ("copy-selection")).set_enabled (false);
+        menu_records = {};
         sort_spinner.visible = false;
         if (this.model != null) {
             this.model.disconnect (status_handler);
@@ -419,7 +460,7 @@ public class Reto.Window : Adw.ApplicationWindow {
         this.model = model;
         status_handler = model.items_changed.connect (update_status);
         update_status ();
-        table.model = new Gtk.SingleSelection (model);
+        table.model = new Gtk.MultiSelection (model);
         stack.visible_child_name = "table";
         // The table may still be scrolled where the previous file was.
         move_cursor (0, true);
@@ -561,10 +602,15 @@ public class Reto.Window : Adw.ApplicationWindow {
         }
     }
 
-    // The record the cursor is on, or null.
+    // The first of the selected records, or null. It is where the cursor goes
+    // when the rows change.
     private Record? get_cursor_record () {
-        var selection = (Gtk.SingleSelection) table.model;
-        return selection != null ? model.get_record (selection.selected) : null;
+        var selection = (Gtk.MultiSelection?) table.model;
+        if (selection == null) {
+            return null;
+        }
+        var bits = selection.get_selection ();
+        return bits.is_empty () ? null : model.get_record (bits.get_minimum ());
     }
 
     // Puts the cursor on a row and scrolls to it. Does nothing without rows.

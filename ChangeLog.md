@@ -16,6 +16,14 @@ All changes of Reto that are visible to users. The newest release is on top.
   replaced characters: Reto reports it, and you can choose another encoding.
 - Installers for Windows (x86_64 and aarch64).
 - Examples in other encodings in `data/examples/`.
+- Select several rows (click, Shift+click, Ctrl+click, drag with the mouse,
+  Ctrl+A) and copy them as tab separated text with Ctrl+C.
+- A context menu on a cell (secondary click or long press) copies the cell,
+  the selected rows or the column, the rows and the column also with the
+  header. A secondary click on a row that is not selected selects it first.
+  A column is copied as it is sorted and filtered.
+- Installers for Windows (x86_64 and aarch64).
+- Examples in other encodings in `data/examples/`.
 - The text of a cell can be selected with the mouse and copied (Ctrl+C).
 - A context menu on a cell (secondary click or long press) copies the cell,
   the row or the column, the row and the column also with the header. Rows

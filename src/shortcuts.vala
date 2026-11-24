@@ -29,6 +29,8 @@ namespace Reto.Shortcuts {
         { "In the Find Field", "Next Match", null, "Return" },
         { "In the Find Field", "Previous Match", null, "<Shift>Return" },
         { "In the Find Field", "Close Find", null, "Escape" },
+        { "Table", "Select All Rows", null, "<Control>a" },
+        { "Table", "Copy the Selected Rows", null, "<Control>c" },
         {
             "General", "Keyboard Shortcuts", "app.shortcuts",
             "<Control>question"

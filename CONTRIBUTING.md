@@ -39,6 +39,9 @@ English-only and is not translated.
   slower or more complicated, such as editing, without discussion.
 - Large files should not freeze the UI; load and sort without blocking the
   main loop.
+- The behavior of clicks, selection and copying in the table is described in
+  [docs/selection-and-copy.md](docs/selection-and-copy.md). Keep it up to
+  date when you change it.
 - Keep the CSV parsing and data model separate from the UI so they can be
   tested without GTK.
 - Keep application logic testable. Whatever can be decided without a widget

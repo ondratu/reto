@@ -10,6 +10,9 @@ Reto opens a CSV file, parses its header and shows the data in a table that
 you can sort, filter, search and copy from. It is a viewer: editing is not
 planned. The aim is to be as standard a GNOME application as possible.
 
+How clicking, selecting and copying work is described in
+[docs/selection-and-copy.md](docs/selection-and-copy.md).
+
 > **Status:** early releases (0.1.x). Reto is a working viewer, but many
 > things that people expect from a data viewer and from a GNOME application
 > are still planned, see below. What changed is listed in the
@@ -28,9 +31,10 @@ Done:
 - [x] Sort the data by a column (numeric columns are sorted as numbers)
 - [x] Filter by an enum-like column (a column with few distinct values)
 - [x] Search in the data (jump between matches)
-- [x] Select the text of a cell and copy it
-- [x] Context menu on a cell: copy the cell, the row or the column, the row
-      and the column with or without the header (as tab separated text)
+- [x] Select several rows (click, Shift, Ctrl, drag, Ctrl+A) and copy them
+      with Ctrl+C as tab separated text
+- [x] Context menu on a cell: copy the cell, the selected rows or the column,
+      the rows and the column with or without the header
 - [x] Keyboard shortcuts dialog
 - [x] AppStream metainfo (screenshot, branding, keywords), validated in CI
 - [x] Flatpak manifest, bundles and a signed Flatpak repository
@@ -46,7 +50,7 @@ Planned, grouped by importance:
 
 ### Should: what people expect from a data viewer
 
-- [ ] Select several rows and copy them (Ctrl+C as tab separated text)
+- [ ] Open the context menu with the keyboard, copy the cell with Ctrl+C
 - [ ] Filter by the value of a cell from its context menu
 - [ ] First row as a header on or off
 - [ ] Choose the delimiter and the quote character by hand
